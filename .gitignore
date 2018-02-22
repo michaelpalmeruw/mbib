@@ -6,3 +6,8 @@ private/
 
 # backups
 *~
+
+# documentation - auxiliary files. 
+docs/*.aux
+docs/*.log
+docs/*.out
