@@ -11,3 +11,6 @@ private/
 docs/*.aux
 docs/*.log
 docs/*.out
+
+# screen shots for docs
+docs/sreenshots

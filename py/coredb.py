@@ -758,7 +758,7 @@ class RefDb(object):
         '''
         key, title = self.get_node_text(key)
 
-        if hub.is_ref(key):
+        if title is not None:
             short = "reference '%s'" % key
         else:
             short = "folder '%s'" % key

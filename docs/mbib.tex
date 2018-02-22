@@ -7,27 +7,31 @@
 
 \usepackage[margin={0.5in,0.75in},papersize={7in,10in}]{geometry}
 \usepackage[scale=0.92]{mybookfonts}
-\usepackage{xspace}
+\usepackage{xspace,verbatim,graphicx}
 
 \usepackage[small]{titlesec}
 \setlength{\parindent}{2em}
 \usepackage{simplehref, vf-plaindoc, setspace}
 \setstretch{1.08}
 
-\newcommand{\mbib}{\texttt{mbib}\xspace}
-\newcommand{\jabref}{\texttt{JabRef}\xspace}
+\newcommand*{\mbib}{\texttt{mbib}\xspace}
+\newcommand*{\jabref}{\texttt{JabRef}\xspace}
 \newcommand*{\ooo}{\texttt{OOo}\xspace}
+
+\newcommand{\screenshot}[2][]{%
+\begin{center}
+\includegraphics[#1]{/data/code/mbib/docs/screenshots/#2}
+\end{center}}
 
 \begin{document}
 
-
 \section*{\mbib Documentation}
 
-\emph{This is only a rough outline for now. I'm working on it.}
+\emph{As of \today, this is a work in progress}
 
 \bigskip
 
-\noindent \mbib is a literature manager, with capabilities similar to \href{http://www.jabref.org}{\jabref}, but intended to better cope with large databases.  Key features and limitations are:
+\noindent \mbib is a literature manager, with capabilities similar to \href{http://www.jabref.org}{\jabref}, but intended to better cope with large databases (thousands of references).  Key features and limitations are:
 
 \begin{itemize}
 \item Import from and export to BibTeX  
@@ -36,14 +40,14 @@
 
 \item Push citations to Texmaker/TexStudio
 
-\item Push citations to OpenOffice/LibreOffice (collectively referred to as ``\ooo'' below). Formatting of bibliographies in \ooo piggybacks on \jabref, that is, you need to have \jabref installed in order to fully use \mbib with \ooo.
+\item Push citations to OpenOffice/LibreOffice (collectively referred to as ``\ooo'' below). Formatting of bibliographies in \ooo piggybacks on \jabref. Thus, you need to have \jabref installed in order to fully use \mbib with \ooo.
 
-\item Written in Python3
+\item Written in Python3.
 
-\item Console-based GUI---basic yet responsive; based on the \texttt{urwid} and
+\item Console-based GUI, based on the \texttt{urwid} and
 \texttt{urwidtrees} Python libraries. 
 
-\item Data are stored in a SQLite database. Therefore, starting the program does \emph{not} load the entire database into memory. The database has a fairy simple structure that lends itself to direct querying and manipulation with SQL.
+\item Data are stored in a SQLite database.
 
 \item Developed and tested only on Linux, and will likely not work out of the box on other platforms. (Volunteers for porting it to other platforms are welcome.)
 
@@ -53,7 +57,12 @@
 
 \subsection{Motivation}
 
-I started writing \mbib after my previous literature manager (\texttt{bibus}) broke down because of growing incompatibilities with LibreOffice, wxPython etc. I tried using \jabref for a while, and while it's really pretty good in many ways, it really slows down once you have several thousand references in your database. (The same goes for Zotero and Mendeley.)
+I started writing \mbib after my previous literature manager (\texttt{bibus}) broke down because of growing incompatibilities with LibreOffice, wxPython etc. I tried using \jabref for a while, and while it's really pretty good in many ways, it really bogs down once you have several thousand references in your database. (The same goes for Zotero and Mendeley.)
+
+
+%The database has a fairy simple structure that lends itself to direct querying and manipulation with SQL
+%
+%Therefore, starting the program does \emph{not} load the entire database into memory. 
 
 \subsection{Status}
 
@@ -88,21 +97,127 @@ The \texttt{xdg-open} and \texttt{xdg-email} utilities are probably installed by
 
 \subsection{Installing \mbib}
 
-Just clone the repository and add the main directory (mbib) to your bash \$PATH. 
+Just clone or unzip the repository and add the main directory (mbib) to your bash \$PATH. 
 
 \subsection{Configuration}
 
 The first program start will generate a configuration \texttt{mbib.ini} file in your home directory. The settings in this file are explained in comments. 
 
+\section{Tutorial}
+
+Here we give an overview of the general work flow. A more complete description of all features will follow later. 
+
+\subsection{Starting the program}
+
+Assuming you have installed all prerequisites and added the \mbib directory to your shell's \texttt{\$PATH}, you should be able to open a console window and run 
+
+\begin{verbatim}
+mpalmer@rehakles:~$ mbib.sh
+\end{verbatim}
+
+\noindent After the first start, the expected output should be 
+
+\begin{verbatim}
+Config file /home/mpalmer/.mbib.ini not found!
+Create default configuration file and proceed (1) or exit (2)?
+1) proceed
+2) exit
+#? 
+\end{verbatim}
+
+\noindent Press ``1'' and enter, and you should see
+
+\begin{verbatim}
+#? 1
+OK
+Database file /home/mpalmer/mbib.sqlite not found. Create? (y/n) 
+\end{verbatim}
+
+\noindent Press ``y'' and the program should start. The interface should look like this:
+
+\screenshot{initial-screen}
+
+\noindent \mbib displays all references in a tree structure. The main \texttt{References} folder at this time has two sub-folders. Use the down-arrow key (or the mouse) to highlight the ``general interest'' folder and press \texttt{F2}. You should now see the references contained in this folder:
+
+\screenshot{f2-pressed}
+
+\noindent Use the arrow keys or the mouse again to highlight the record labelled \texttt{Harrit2009}, press \texttt{enter}, and you should see a context menu:
+
+\screenshot{reference-menu}
+
+\noindent Use the arrow keys and \texttt{enter}, the indicated shortcut keys, or the mouse to select the desired menu item. If we select \texttt{Show details}, the \texttt{View reference} dialog comes up:
+
+\screenshot{refview}
+
+\noindent Use the arrow keys again to scroll through this dialog. The abstract is at the bottom. Above it, there are three fields (let's call them buttons) that are active. The one in focus (and which would respond to pressing \texttt{Enter}) is highlighted in blue; or you can again use the mouse. Triggering a button will open a browser window and take you to the URL. 
+
+Press \texttt{Esc} to close the dialog. Press \texttt{Enter} again to reopen the menu. Maybe you prefer to disregard the scientific facts about 9/11%
+%
+\footnote{After all, hasn't ``truther'', and by affiliation truth itself, become a dirty word?}
+%
+and therefore want to delete this reference. Press \texttt{d} or \texttt{r}---in this case, they are equivalent---to delete the reference. After confirmation, the reference now shows up in the Trash folder:
+
+\screenshot{harrit-trash}
+
+\noindent Navigate down to the Trash folder and press \texttt{Enter} or double-click on it to bring up this folder's context menu:
+
+\screenshot{trash-menu}
+
+\noindent Select the ``Empty Trash'' option to get rid of the deleted reference entirely and irreversibly. Alternatively, use the ``Recycle'' option to move the deleted reference to the Recycled folder. Navigate to it and press the Space key to select it: 
+
+\screenshot{harrit-recycled}
+
+\noindent Let's assume that you intend to look into this matter some other time, and you want to collect such references in a separate folder. Navigate to the ``general interest'' folder and activate its menu (Enter or double-click), then activate the option ``Add sub-folder'':%
+%
+\footnote{The folder context menu is quite long. In these screenshots, which use a small window, some items at the bottom are missing; use the down arrow key to scroll them into view.}
+
+\screenshot{folder-menu}
+
+\noindent This will bring up a dialog that lets you enter the name for the new sub-folder. After completing it, it should look similar to this:
+
+\screenshot{read-later}
+
+\noindent The new folder (here named ``read later'') has no $+$ or $-$ before it because it is empty. We can move the previously recycled reference here. Navigate to the new folder and activate its context menu, then select the ``Move selected items here'' option:
+
+\screenshot{move-here}
+
+\noindent After completing this, you should now have the recycled reference in the new folder. (Use the \texttt{F2} to expand the folder view.)
+
+In addition to one or more individual references, you can also select and then move or copy folders. As a practical exercise, create a folder ``test'' directly below ``References''. Navigate back to ``general interest'' and select it with the space bar. Go back to ``test'', open its menu and select ``Move selected items here''. 
+
+You will now have cloned the entire folder with sub-folders and references. You can flatten that nested folder structure by opening the menu for ``test'' again and selecting ``Flatten folder.'' This will give you the following result:
+
+\screenshot{flatten-folder}
+
+\noindent You will notice that the references in both ``test'' and ``general interest'' are highlighted in blue; this indicates that they are, by virtue of being contained in a selected folder somewhere in the tree, part of the currently active selection. Deselecting ``general interest'' (by hitting Space on it again) will also deselect the references. 
+
+Let us now turn to importing references. I will discuss this for PubMed. Go to the PubMed website (\url{https://www.ncbi.nlm.nih.gov/pubmed/}) and type the following into the search bar:
+
+\begin{verbatim}
+blue-native[ti] anal-biochem[so]
+\end{verbatim}
+
+This will give you (at the time of this writing) 16 results. Choose the ``PMID list'' option from the display format control to see the identifiers for these papers. Use your mouse to select them. 
+
+In \mbib, create a new sub-folder in biochemistry (e.g.\ called ``blue-native''). Open its menu and choose ``Import references from PubMed''. Hold down the Shift key and click you middle mouse button to paste the selected PMIDs into the dialog. Click OK to start the import. 
+
+The procedure for importing references from DOIs is similar. When importing BibTex, you can paste directly, too; be warned, however, that pasting large chunks of text may be quite slow. It is better in this case to first save the BibTex to file, and then enter the file name into the BibTex import file dialogue. 
+
+To export individual folders to BibTex, select the appropriate item from their context menu. The same operation performed on the References folder will export the entire database. The exported file will be free of duplicates; you are free to keep copies of the same reference in as many folders as you wish. 
+
+
+\begin{comment}
 \section{Running \mbib}
 
-The program runs inside a console window. Assuming you have put a start-up script into your shell's path, just open a shell window (e.g.\ konsole on KDE, or xterm on any X-based desktop) and run \texttt{mbib.sh}.
+The program runs inside a console window. Assuming you have put a start-up script into your shell's path, just open a shell window (e.g.\ \texttt{konsole} on KDE, or \texttt{xterm} on any X-based desktop) and run \texttt{mbib.sh}.
 
 %First, the standard way, and then maybe the wrapper bash script. Also how to add it to the K Menu and the work-around for konsole - use xterm instead. Customization of xterm via the ~/.Xresources file and 
 %
 %xrdb -merge ~/.Xresources
 %
 %Leave it to others to contribute instructions on how to run it on other desktops. 
+
+
 
 
 \subsection{The user interface}
@@ -117,16 +232,22 @@ The program runs inside a console window. Assuming you have put a start-up scrip
 \item 
 \end{itemize}
 
-\section*{Some gotchas to point out}
+\end{comment}
+
+
+\section{Some gotchas}
+
+There is more to \mbib's functionality, but it will have to wait a couple of days; I must get to work on some urgent stuff right now. Meanwhile, here are some things to keep in mind. 
 
 \begin{itemize}
-\item Item selections are stored in the database. Maybe we should offer a configuration option to deselect everything, just as we do with the ``recently added'' folder. Yes, we do that now. 
+
+%\item Item selections are stored in the database. Maybe we should offer a configuration option to deselect everything, just as we do with the ``recently added'' folder. Yes, we do that now. 
 
 \item Moving selected items from search results: the search folder is basically a simple folder in the database. So, if items in this folder are selected and moved, the copies in the permanent folder stay where they are. 
 
-We may think about an option to erase all other copies of a reference. Yes, we have that now. Or all selected references -- we don't have that yet. If we did have it, I guess we should offer a confirmation dialog that specifies the number of selected references.
+%We may think about an option to erase all other copies of a reference. Yes, we have that now. Or all selected references -- we don't have that yet. If we did have it, I guess we should offer a confirmation dialog that specifies the number of selected references.
 
-\item And while we are on it: All the special top-level folders are special just in mbib, because specific operations are available and others excluded; in particular, they cannot be deleted, moved, or renamed. However, no such protective restrictions apply when working with the database in SQL mode. 
+\item All the special top-level folders are special and protected just inside mbib, because specific operations are available and others excluded; in particular, they cannot be deleted, moved, or renamed. However, no such protective restrictions apply when working with the database using an SQLite shell. 
 
 Generally speaking, it is a good idea to make a safety backup copy of the database file before performing major surgery in SQL. 
 \end{itemize}

@@ -24,7 +24,7 @@ THE SOFTWARE.
 obtained from https://github.com/ptigas/bibpy
 
 Changes by M.P.:
-- removed json, pprint, fileinput imports (pprint and fileinput were unused)
+- removed json, pprint, fileinput imports (no longer used)
 - let Parser inherit from object
 - converted iterator to Python3
 - forced field names to lowercase
@@ -32,8 +32,8 @@ Changes by M.P.:
 - changed 'id' key to 'bibtexkey'
 - changed 'type' key to 'reftype'
 - added __call__ method
-- hacked around the spurious white space insertion using temporary substitution
-- prevent removal of round brackets ()
+- hacked around spurious white space insertion using temporary substitution
+- prevented stripping of round brackets ()
 """
 
 import re
