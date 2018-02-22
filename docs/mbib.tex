@@ -23,7 +23,11 @@
 
 \section*{\mbib Documentation}
 
-\mbib is a literature manager, with capabilities similar to \href{http://www.jabref.org}{\jabref}, but intended to better cope with large databases.  Key features and limitations are:
+\emph{This is only a rough outline for now. I'm working on it.}
+
+\bigskip
+
+\noindent \mbib is a literature manager, with capabilities similar to \href{http://www.jabref.org}{\jabref}, but intended to better cope with large databases.  Key features and limitations are:
 
 \begin{itemize}
 \item Import from and export to BibTeX  
@@ -84,48 +88,26 @@ The \texttt{xdg-open} and \texttt{xdg-email} utilities are probably installed by
 
 \subsection{Installing \mbib}
 
-
-
-I guess I need to put it on PyPi somehow, and maybe on GitHub. On second thought, why bother with PyPi? I hate this entire pip and easyinstall setup nonsense, I always find it more trouble than it is worth. Also, the intended audience is not Python programmers. Let's just put it on Github, and that is that. 
-
-Well, there is a slight hitch, is there not---pip doesn't really seem to help with installing data files. I guess I will deal with this by creating some bootstrapping code that looks for the directory on start-up and creates it when needed. We can also accept some command line argument with the folder path---yes, I guess I will do that. That means we will have to use argparse or something. As a side effect, this will also allow the user to keep multiple databases in separate directories. 
-
-How about this: we stuff everything inside a single folder. All the python code can go into a zip archive, and that can be imported. (We can use pyc, but they have to be renamed according to Python2 conventions.) We can insert the zip into PYTHONPATH in bash, and that is the end of it. Well, it is not even necessary; why not just keep the code inside a subfolder. At the top level, we just have that folder, the config file, and the database skeleton file to which the config file points. 
-
-Well, we should make it easy for the user to update the code files only, without clobbering and slobbering the data and config, should we not? How do we do that?
-
-We could define the standard locations for config and database one level above the directory that the \mbib code resides in. Then, the startup script would check those locations and use them. E.g.\ ../mbib.cfg and ../mbib.db---let's check for those. If they are not found, the start-up script will ask if they should be generated. The alternative would be to exit the program and let the user copy or move the files from a backup location. 
-
-Alternate scenario -- save config file in the home directory. If it is found, look for database file in that directory. I guess we should do that. Then, the start-up script can first write the config file. There, it will find the file name of the database. If that exists, then it will be opened; if not, the start up script will propose to either create an empty file or exit. 
-
-I guess the second scenario makes more sense. The location of the config file will be hard-coded into the bash script. I guess we will then also have to make sure the same files are read within python; for that, we either need to pass them on the command line or set them into environmental variables with export. I guess I will use the latter. Yes, this all sounds very reasonable. 
-
-
+Just clone the repository and add the main directory (mbib) to your bash \$PATH. 
 
 \subsection{Configuration}
 
-This will wait until after we have decided on the installation procedure. One point to stress is that we need to put one or the other start-up script into the shell's path; I don't think that pip lets us do this automatically. We will just show an example. 
+The first program start will generate a configuration \texttt{mbib.ini} file in your home directory. The settings in this file are explained in comments. 
 
 \section{Running \mbib}
 
-The program runs inside a console window. Assuming you have put a start-up script into your shell's path,  On KDE, you can start 
+The program runs inside a console window. Assuming you have put a start-up script into your shell's path, just open a shell window (e.g.\ konsole on KDE, or xterm on any X-based desktop) and run \texttt{mbib.sh}.
 
-\subsection{Starting the program}
+%First, the standard way, and then maybe the wrapper bash script. Also how to add it to the K Menu and the work-around for konsole - use xterm instead. Customization of xterm via the ~/.Xresources file and 
+%
+%xrdb -merge ~/.Xresources
+%
+%Leave it to others to contribute instructions on how to run it on other desktops. 
 
-Probably, the best way is to use \texttt{python3 -m}. 
-
-First, the standard way, and then maybe the wrapper bash script. Also how to add it to the K Menu and the work-around for konsole - use xterm instead. Customization of xterm via the ~/.Xresources file and 
-
-xrdb -merge ~/.Xresources
-
-Leave it to others to contribute instructions on how to run it on other desktops. 
-
-As noted above, we will need command line argument parsing. 
 
 \subsection{The user interface}
 
 \begin{itemize}
-\item runs inside a shell
 \item navigation (mouse, keyboard)
 \item viewing and editing references
 \item importing references
