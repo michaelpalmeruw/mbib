@@ -416,6 +416,10 @@ class Selections(object):
         get refids and bibtexkeys both, return them in a dict
         '''
         raw = self.get_selected_refs()
+
+        if len(raw) == 0:
+            return []
+
         ref_ids = [r[0] for r in raw]
 
         stmt = "select * from refs where ref_id in (%s)"
@@ -443,7 +447,7 @@ class Selections(object):
 
         if len(data) == 0:
             hub.show_errors('Nothing was selected')
-            return
+            return data
 
         keys = [ d['bibtexkey'] for d in data ]
         return sorted(keys)
@@ -454,7 +458,9 @@ class Selections(object):
         copy bibtexkeys to clip board. Maybe one day we can generalize this to
         copy other parts also.
         '''
-        xclip(','.join(self.get_selected_bibtexkeys()))
+        data = self.get_selected_bibtexkeys()
+        if len(data):
+            xclip(','.join(data))
 
 
     def mail_selected(self):

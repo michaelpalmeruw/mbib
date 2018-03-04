@@ -13,4 +13,8 @@ docs/*.log
 docs/*.out
 
 # screen shots for docs
-docs/sreenshots
+docs/screenshots/
+
+# folder with throwaway test files
+test/
+

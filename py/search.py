@@ -23,7 +23,7 @@ class Search(object):
         conjunction = ' %s ' % conjunction
 
     bool_precedence = config['search']['bool_precedence']
-    lazy_like = config['search']['lazy_like']
+    lazy_like = config['search'].getboolean('lazy_like')
 
     comparators = ">= <= > < =".split()
     placeholder = "_table_field_"
@@ -65,9 +65,10 @@ class Search(object):
                     comp = 'like'
         try:
             term = int(term)
-            return '{%s} %s %s' % (self.placeholder, comp, term)
+            expr = '{%s} %s %s' % (self.placeholder, comp, term)
         except ValueError:
-            return '{%s} %s "%s"' % (self.placeholder, comp, term.strip())
+            expr = '{%s} %s "%s"' % (self.placeholder, comp, term.strip())
+        return expr
 
 
     def translate_restraints(self, table_field, raw):

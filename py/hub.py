@@ -19,7 +19,9 @@ class hub(object):
     SELECTED = 1
     IN_SELECTION = 2
 
-    # configure keys, assigned actions, and help strings
+    # configure keys, assigned actions, and help strings. The order of this list
+    # will only affect the order of display in the help dialog; the corresponding
+    # keyboard shortcuts are assigned in the .ini file.
     _actions = [
         ('show_help', 'Show/hide this help dialog'),
         ('exit', 'Quit program'),
@@ -30,9 +32,9 @@ class hub(object):
         ('goto_search', 'Go to Search'),
         ('goto_trash', 'Go to Trash'),
         ('toggle_select', 'Select or deselect current folder or reference'),
-        ('show_selection_menu', 'Show menu for selected folders and references'),
         ('deselect_all', 'Deselect all folders and references'),
         ('xclip_selected', 'Copy selected bibtex keys to X clipboard (requires xclip)'),
+        ('bibtex_selected', 'Export selected references to BibTex'),
         ('html_selected', 'Export selected references to HTML'),
         ('cite_selected_latex', 'Cite selected references in TeXstudio or Texmaker'),
         ('cite_selected_oo', 'Cite selected references in OpenOffice'),
@@ -45,10 +47,11 @@ class hub(object):
         ('create_ref', 'Create new reference in current folder'),
         ('create_folder', 'Create new folder in current one'),
         ('confirm_delete', 'Delete current folder or reference'),
+        ('show_selection_menu', 'Show menu for selected folders and references'),
+        ('toggle_sort', 'Toggle sorting of references (by year/alphabetical)'),
         ('toggle_refs', 'Show/hide references'),
         ('filter_folders_dialog', 'Filter folders by name'),
         ('reset_filter_folders', 'Reset folder filter (show all folders)'),
-        ('toggle_sort', 'Toggle sorting of references (by year/alphabetical)'),
     ]
 
     def __init__(self):
@@ -117,13 +120,10 @@ class hub(object):
         I guess we need to make this context-aware - abort actions that make no sense
         in the given context, such as adding folders to references. How do we do this?
 
-        We already have some sort of context restriction by way of the specialized
-        menus in ui. Can we somehow avoid duplicating that? It rather seems to me that
-        those declarations would become the duplicate. What we really need is some mapping
-        of action to availability context; the menus should dynamically access that mapping
-        also, instead of being hand-coded.
-
-        The only alternative seems to be that we disable those dubious shortcuts.
+        Update: this is now implemented in the .prevalidate methods of the corresponding
+        dialogs in the ui module. The .prevalidate method can look at the tree and decide
+        if the currently active item should permit the requested operation. In this manner,
+        we can catch requests made through both menus and global keyboard shortcuts.
         '''
         try:
             method = getattr(self, action)

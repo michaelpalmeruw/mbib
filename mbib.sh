@@ -1,24 +1,33 @@
 #!/bin/bash
 
 export script_name="${BASH_SOURCE[0]}"
-usage() { echo "Usage: $script_name [-d <database file>] [-i <ini file>] [-b <batch operation>]" 1>&2; exit 1; }
+usage() { echo "Usage: $script_name [-d <database file>] [-i <ini file>] [-b <batch operation>] [-f <folder>] [-t <target file>] [-c (clobber target files)]" 1>&2; exit 1; }
 
 # default ini file - can be overridden using -b option
 export mbib_ini="$HOME/.mbib.ini"
 
-while getopts ":d:i:b:h" opt; do
+while getopts ":d:i:b:t:f:hc" opt; do
     case $opt in
-        h)
-            usage
+        b)
+            export mbib_batch=${OPTARG}
+            ;;
+        c)
+            export mbib_clobber=true
             ;;
         d)
             export mbib_db=`readlink -f ${OPTARG}`
             ;;
+        f)
+            export mbib_folder=${OPTARG}
+            ;;
+        h)
+            usage
+            ;;
         i)
             export mbib_ini=`readlink -f ${OPTARG}`
             ;;
-        b)
-            export mbib_batch=${OPTARG}
+        t)
+            export mbib_target=`readlink -f ${OPTARG}`
             ;;
         *)
             usage
@@ -35,7 +44,8 @@ fi
 
 # allow only one interactive instance to run
 if [ -z "$mbib_batch" ] && [ ! -z `pgrep -f mbib.py`  ]; then
-    echo "mbib.sh already open -- exiting"
+    echo "An interactive mbib.sh session is already open -- exiting"
+    sleep 2
     exit 1
 fi
 

@@ -5,11 +5,6 @@ application object and main UI helper classes
 '''
 import os, sys, time, string, traceback
 
-# this cruft here was used to find modules imported from non-standard places
-# thisdir = os.path.realpath(os.path.split(__file__)[0])
-# sys.path = [p for p in sys.path if p == thisdir or not p.startswith('/data/')]
-# print(sys.path)
-
 import urwid
 from urwidtrees.widgets import TreeBox
 from urwidtrees.tree import Tree

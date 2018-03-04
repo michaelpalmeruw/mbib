@@ -343,20 +343,20 @@ class Imex(object):
         return '\n'.join(lines)
 
 
-    def get_export_records(self, node):
+    def get_export_records(self, node=None, folder_ids=None):
         '''
-        determine what records to export
-        backend for both html and bibtex export
-
-        if a node is passed, get references comprised by it,
-        otherwise collect selected records.
+        determine what records to export. backend for html and bibtex export
+        - if node is not None, we export the reference or folder it refers to.
+        - elif folder_ids is not None, we collect all references in those folders
+        - else, we export the current selection.
         '''
         if node is not None:
-            if hub.is_ref(node):
-                records = [self.get_ref_dict(node)]
-            else:
-                branches, records = self.get_nodes_below(node[1])
-        else:
+            records = [self.get_ref_dict(node)]
+
+        elif folder_ids is not None:
+            branches, records = self.get_nodes_below(folder_ids)
+
+        else:  # get current selection
             records = hub.get_selected_refs_full()
 
         return sorted(records, key=lambda r: r['bibtexkey']) # sorting could be made configurable
@@ -379,12 +379,12 @@ class Imex(object):
                 hub.app.set_status("Output sent to %s" % rv)
 
 
-    def export_bibtex(self, node=None, file_name=None, batch=False):
+    def export_bibtex(self, node=None, folder_ids=None, file_name=None, batch=False):
         '''
         export records in bibtex format. Since this is a little slow
         with large numbers of records, we show a progress bar.
         '''
-        records = self.get_export_records(node)
+        records = self.get_export_records(node=node, folder_ids=folder_ids)
         output = []
 
         if not batch:
@@ -413,9 +413,10 @@ class Imex(object):
 
     def export_html(self, node=None, file_name=None, batch=False):
         '''
-        export records as html
+        export records as html. Maybe we should update this to
+        accepting nodelist rather than a single node also.
         '''
-        records = self.get_export_records(node)
+        records = self.get_export_records(nodelist=[node])
         output = OlFormatter(records)()
         self.write_export_records(output, file_name, batch)
 

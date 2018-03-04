@@ -135,7 +135,7 @@ class Trashcan(object):
 
         # so it's a folder ...
         branch_id = node[1]
-        subfolder_ids, ref_ids = self.get_nodes_below(branch_id, ids_only=True)
+        subfolder_ids, ref_ids = self.get_nodes_below([branch_id], ids_only=True)
         self._delete_other_instances(ref_ids, subfolder_ids + [branch_id])
 
 

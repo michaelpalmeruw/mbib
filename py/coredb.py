@@ -12,7 +12,7 @@ etc. elsehwere.
 '''
 
 # if dbfile gotten from os.environ, ~ is already expanded
-dbfile = os.environ.get("mbib_db", None) or os.path.expanduser(config['paths']['dbfile'])
+dbfile = os.path.realpath(os.getenv("mbib_db", None) or os.path.expanduser(config['paths']['dbfile']))
 db_template = "resources/default.sqlite"  # relative path of empty db
 
 class RefDb(object):
@@ -48,7 +48,7 @@ class RefDb(object):
         self.sort_by_year = config['preferences'].getboolean("sort_by_year")
 
         # folder matching follows rule 'lazy like' setting for reference matching
-        self.lazy_like = config['search']['lazy_like']
+        self.lazy_like = config['search'].getboolean('lazy_like')
 
         self.clear_cache()
 
@@ -72,6 +72,12 @@ class RefDb(object):
                 shutil.copy(empty_db, dbfile)
             else:
                 raise SystemExit("Can find neither %s nor %s" % (dbfile, empty_db))
+
+        elif config['preferences'].getboolean('backup_db_file'):
+            backup_db = "%s.bak" % dbfile
+
+            if not os.path.exists(backup_db) or os.stat(backup_db).st_mtime < os.stat(dbfile).st_mtime:
+                shutil.copy(dbfile, backup_db)
 
         # at this point, the database should be in place
         hub.register('sqlite', SqliteDB(dbfile))
@@ -427,38 +433,34 @@ class RefDb(object):
         return branches
 
 
-    def get_branches_below(self, parent_id):
+    def get_branches_below(self, parent_ids):
         '''
         recursively find all branches below a parent.
         '''
         stmt = '''
         with recursive branch_set(i)
-        as ( select branch_id from branches where parent_id = (?)
+        as ( select branch_id from branches where parent_id in (%s)
                 union select branch_id from branches, branch_set
                     where branches.parent_id = branch_set.i
             )
         select * from branches where branch_id in branch_set;
         '''
 
-        return self._db.execute(stmt, [parent_id]).fetchall()
+        return self._db.execute_qmarks(stmt, [parent_ids]).fetchall()
 
 
-    def get_nodes_below(self, parent_id, ids_only=False):
+    def get_nodes_below(self, parent_ids, ids_only=False):
         '''
-        Har. Now the real fun starts.
+        return references and branches below a given folder, identified
+        by parent_id.
 
-        I guess I really will do one preliminary query to obtain the ref_ids though;
-        joining each and every of those messy queries below would be too much.
-
-        That would also do away with the need for 'distinct'.
-
-        We will return both branches and references below, so therefore 'nodes_below',
-        no longer just 'references_below'.
+        Hm, no, we really need to rig this up to accept multiple parent_id
+        values at a time, because otherwise the distinct clause won't kick in.
         '''
-
-        branches_below = self.get_branches_below(parent_id)
+        branches_below = self.get_branches_below(parent_ids)
         branch_ids = [bb['branch_id'] for bb in branches_below]
 
+        all_branches = parent_ids + branch_ids
         stmt = """
                select distinct refs.*, reftypes.name as reftype
                       from refs, reftypes, reflink
@@ -467,7 +469,7 @@ class RefDb(object):
                       and refs.reftype_id = reftypes.reftype_id
                """
 
-        refs = self._db.execute_qmarks(stmt, [branch_ids+[parent_id]]).fetchall()
+        refs = self._db.execute_qmarks(stmt, [ all_branches ]).fetchall()
 
         if ids_only:
             ref_ids = [r['ref_id'] for  r in refs]
@@ -538,7 +540,7 @@ class RefDb(object):
             yield branch
 
         if include_children:
-            for branch in self.get_branches_below(root_node['branch_id']):
+            for branch in self.get_branches_below([root_node['branch_id']]):
                 yield branch
 
 
@@ -854,6 +856,9 @@ class RefDb(object):
 
         hm. what is missing here is the ref type.
         '''
+        if not len(base_records): # guard against empties, because execute_qmarks will puke
+            return []
+
         lookup = { rr['ref_id'] : dict(rr) for rr in base_records }
 
         ref_ids = list(lookup.keys())

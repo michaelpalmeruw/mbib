@@ -1,12 +1,5 @@
 '''
-create a sqlite db storage.
-
-we will keep this one generic, and implement
-any stock-specific stuff elsewhere.
-
-I need to rethink this - there is stuff happening or
-not happening which I don't understand. Too much trickery
-going on here.
+Some conveniences for working with SQLite dababases
 '''
 from sqlite3 import dbapi2 as sqlite
 from sqlite3.dbapi2 import DataError, DatabaseError, Error, IntegrityError, \
@@ -41,12 +34,11 @@ class UnwrapCursor(sqlite.Cursor):
         return self._unwrap(self.fetchone())
 
 
-
 class SqliteDB(object):
     '''
     convenience wrapper around pysqlite
     '''
-    db_path = ':memory:'            # testing
+    db_path = ':memory:'            # default for testing
     text_factory = str
 
     cursor_class = UnwrapCursor
@@ -132,9 +124,9 @@ class SqliteDB(object):
 
     def execute_qmarks(self, stmt, value_lists, row_dicts=True):
         '''
-        value_lists is a list of lists (or iterable of iterables ... ). Each of
-        these must correspond to a single (%s) interpolation marker, which
-        will be substituted with the appropriate number of question marks.
+        value_lists is a list of lists (or iterable of iterables). Each of
+        these must correspond to a single (%s) interpolation marker in stmt,
+        which will be substituted with the appropriate number of question marks.
         '''
         vl = list(value_lists)
         frags = stmt.split('(%s)')
@@ -144,7 +136,7 @@ class SqliteDB(object):
 
         for values in vl:
             v = list(values)
-            assert len(v) > 0; "can't use empty list of values"
+            assert len(v) > 0; "execute_qmarks can't use an empty list of values"
             flattened.extend(v)
             qmarks.append(','.join('?' * len(v)))
 
@@ -195,7 +187,6 @@ class SqliteDB(object):
             valuetuples.append(tuple([vd[col] for col in columns]))
 
         return self.executemany(stmt, valuetuples)
-
 
 
     def close(self):
