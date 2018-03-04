@@ -343,11 +343,12 @@ class Imex(object):
         return '\n'.join(lines)
 
 
-    def get_export_records(self, node=None, folder_ids=None):
+    def get_export_records(self, node=None, folder_ids=None, ref_keys=None):
         '''
         determine what records to export. backend for html and bibtex export
         - if node is not None, we export the reference or folder it refers to.
         - elif folder_ids is not None, we collect all references in those folders
+        - elif ref_keys is not None, we export just those references
         - else, we export the current selection.
         '''
         if node is not None:
@@ -355,6 +356,10 @@ class Imex(object):
 
         elif folder_ids is not None:
             branches, records = self.get_nodes_below(folder_ids)
+
+        elif ref_keys is not None:
+            records = self.get_refs_by_key(ref_keys)
+            # print('records', len(records))
 
         else:  # get current selection
             records = hub.get_selected_refs_full()
@@ -379,12 +384,12 @@ class Imex(object):
                 hub.app.set_status("Output sent to %s" % rv)
 
 
-    def export_bibtex(self, node=None, folder_ids=None, file_name=None, batch=False):
+    def export_bibtex(self, node=None, folder_ids=None, ref_keys=None, file_name=None, batch=False):
         '''
         export records in bibtex format. Since this is a little slow
         with large numbers of records, we show a progress bar.
         '''
-        records = self.get_export_records(node=node, folder_ids=folder_ids)
+        records = self.get_export_records(node=node, folder_ids=folder_ids, ref_keys=ref_keys)
         output = []
 
         if not batch:

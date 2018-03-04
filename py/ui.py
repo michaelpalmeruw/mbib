@@ -289,6 +289,7 @@ class RefEditBase(ResetStatusMixin, dialog.DialogWithLabels):
                keywords
                comment
                author
+               institution
                journal
                volume
                number

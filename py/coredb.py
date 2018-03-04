@@ -154,14 +154,6 @@ class RefDb(object):
         self._prepopulate_cache() # this DOES add snappiness.
 
 
-    def cache_length(self):
-        '''
-        this seems to be unused
-        '''
-        1/0
-        return sum([len(v) for v in list(self.cache.values())])
-
-
     def refresh_tree_item(self, node, refresh_content=True):
         '''
         let's be a bit more considerate with clearing caches - as long as we
@@ -477,6 +469,27 @@ class RefDb(object):
 
         # full data requested
         return branches_below, self.extend_refs(refs)
+
+
+    def get_refs_by_key(self, keys):
+        '''
+        get complete records by key. Initial use case is aux file export;
+        but it may well find applications elsewhere later, so we put it here.
+        '''
+        stmt = """
+            select
+                refs.*,
+                reftypes.name as reftype
+            from
+                refs,
+                reftypes
+            where
+                refs.bibtexkey in (%s)
+                and refs.reftype_id = reftypes.reftype_id
+            """
+
+        short_refs = self._db.execute_qmarks(stmt, [keys]).fetchall()
+        return self.extend_refs(short_refs)
 
 
     def filter_folders(self, search_string):

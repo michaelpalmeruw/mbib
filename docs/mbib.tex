@@ -247,6 +247,7 @@ sciencedirect (for example \href{https://doi.org/10.1016/j.bbamem.2014.05.014}{t
 Pasting works fine for one or a handful of references;  be warned, however, that pasting longer text will be quite slow. In this case, it is better to first save the \bibtex to file, and then enter the file name into the \bibtex import dialogue. 
 
 \subsection{Exporting references}
+\label{sec:export}
 
 % To export individual folders to BibTex, select the appropriate item from their context menu. The same operation performed on the References folder will export the entire database. The exported file will be free of duplicates; you are free to keep copies of the same reference in as many folders as you wish. 
 
@@ -254,36 +255,64 @@ References can be exported to \bibtex or HTML. The formatting of the former can 
 
 The export operations are available in the context menu of the ``References'' folder, in which case the entire database is exported, as well as from the menu of each sub-folder, which will export the references within and below it. Additionally, export operations can also be applied to the currently selected references (including those residing in folders). Press \key{F5} to bring up a context menu that contains this and other operations pertaining to the current selection.
 
-\subsection{Syncing \bibtex files to the database}
+\subsection{Making the \mbib database available to \LaTeX{}}
 
-You can also export references from the command line, without opening an interactive \mbib session. In the simplest case, you can use 
+Aside from exporting part or all of the \mbib database to \bibtex from an interactive session, you can also access the references you need from the command line. There are various ways to do this. 
+
+\subsubsection{Export the references listed in the \texttt{.aux} file}
+
+You can generate an up-to-date \bibtex file on the fly by letting \mbib parse the \texttt{.aux} file of your document. Assume that in \texttt{mydocument.tex} you have declared ~\bibliography{references}~. Then, after you have latexed your document, but \emph{before} you run \bibtex, you can run the following command to create \texttt{references.bib}:
+
+\begin{verbatim}
+mpalmer@rehakles:~$ mbib.sh -b auxexport -t mydocument.aux
+\end{verbatim}
+
+\noindent After that, you run \bibtex, again on the \texttt{.aux} file:
+
+\begin{verbatim}
+mpalmer@rehakles:~$ bibtex mydocument.aux
+\end{verbatim}
+
+\noindent You can also ask \mbib to first export and run \bibtex for you:
+
+\begin{verbatim}
+mpalmer@rehakles:~$ mbib.sh -b auxbibtex -t mydocument.aux
+\end{verbatim}
+
+\noindent If you include this line in your build process, \bibtex will always transparently access the current state of your database. Thanks to \sqlite, this is fast enough even with large databases and numbers of citations. 
+
+\subsubsection{Syncing the \mbib database to a \bibtex file}
+
+You can also export the entire database, or selected folders contained in it, to \bibtex from the command line. In the simplest case, you can use 
 
 \begin{verbatim}
 mpalmer@rehakles:~$ mbib.sh -b sync
 \end{verbatim}
 
-\noindent This will export all references in the \mbib database to a \bibtex file, the path of which is configured in the \ini file. You can override these settings by passing additional options, for example 
+\noindent This will export all references in the \mbib database to a single \bibtex file, the path of which is configured in the \ini file. You can override these settings by passing additional options, for example 
 
 \begin{verbatim}
 mpalmer@rehakles:~$ mbib.sh -b sync -t myproject.bib -f myproject
 \end{verbatim}
 
-\noindent Now, only the references which, inside \mbib, are stored in the folder named ``myproject'' will be exported, and they will be saved in the file \texttt{myproject.bib}. This allows you to keep all your references in a single, central \mbib database, and at the same time use small, project-specific \bibtex files next to your multiple separate manuscripts. A few more points to note: 
+\noindent Now, only the references which, inside \mbib, are stored in the folder named ``myproject'' will be exported, and they will be saved in the file \texttt{myproject.bib}. This allows you to keep all your references in a single, central \mbib database, and at the same time use smaller, project-specific \bibtex files for your multiple separate manuscripts. A few more points to note: 
 
 \begin{itemize}
-\item If you have multiple folders named ``myproject", they will all be exported to the same file. 
+\item If you have multiple folders named ``myproject", all of them will be exported to the same file. 
 
-\item If you have empty spaces in your folder name, you need to enclose in quotes on the command line:
+\item If the name of the folder contains spaces, you need to enclose in quotes on the command line:
 
 \begin{verbatim}
 mpalmer@rehakles:~$ mbib.sh -b sync -t myproject.bib -f "my project"
 \end{verbatim}
 
-\item The \texttt{\mbib -b sync} command will only export the database if its time stamp is more recent than that on the \bibtex file (or if the latter does not yet exist, obviously). 
+\item The \texttt{\mbib\ -b sync} command will only export the database if its time stamp is more recent than that on the \bibtex file (or if the latter does not yet exist, obviously). 
 
 \end{itemize}
 
-\noindent The last point means that it costs very little to run this command routinely during document compilation. For example, if you use \texttt{latexmk}, \texttt{rubber} or a similar build tool, you can add a \texttt{\mbib -b sync} rule to the build script, after which your document will always be compiled against the current state of the \mbib database.
+\noindent The last point means that, regardless of file size, it costs very little to run this command routinely during document compilation. Therefore, this is another viable option to ensure that your document gets compiled against the current state of the \mbib database.%
+%
+\footnote{Of course, if you do the full database dump, \bibtex will have to scan through a very large \texttt{.bib} file. While \bibtex itself is very fast, other tools like \texttt{biber} reportedly can be quite slow.}
 
 \subsection{Searching and filtering}
 

@@ -1,24 +1,45 @@
 '''
-implement batch processing tasks. This is too much of a hodgepodge
-and should be split into at separate modules or at least classes
-for the different tasks.
+implement batch processing tasks
 '''
 
-from hub import hub
-from imex import Imex
 from config import config
 import zipfile, os, sys, re, tempfile, shutil, glob
 from collections import Counter
 
+from auxfile import AuxFileParser
+
 
 class Plumbing(object):
     '''
-    delegate attribute lookup, acquire database
+    delegate attribute lookup to coredb, acquire database, defer imports
     '''
-    _db = hub.sqlite
+    _db = _hub = _imex = None
+
+    def dbfile(self):
+        '''
+        retrieve db file name without importing hub
+        '''
+        return os.path.realpath(os.getenv("mbib_db", None) or os.path.expanduser(config['paths']['dbfile']))
+
+    def imex(self):
+        if self._imex is None:
+            from imex import Imex
+            self._imex = Imex()
+        return self._imex
+
+    def hub(self):
+        if self._hub is None:
+            from hub import hub
+            self._hub = hub
+        return self._hub
+
+    def db(self):
+        if self._db is None:
+            self._db = self.hub().sqlite
+        return self._db
 
     def __getattr__(self, att):
-        return getattr(hub.coredb, att)
+        return getattr(self.hub().coredb, att)
 
 
 class Jabrefy(Plumbing):
@@ -66,8 +87,8 @@ class Jabrefy(Plumbing):
                       where refs.reftype_id = reftypes.reftype_id
                       and refs.bibtexkey in (%s)
                '''
-        base_records = self._db.execute_qmarks(stmt, [list(self.bibtexkeys)]).fetchall()
-        full_records = hub.extend_refs(base_records)
+        base_records = self.db().execute_qmarks(stmt, [list(self.bibtexkeys)]).fetchall()
+        full_records = self.hub().extend_refs(base_records)
 
         found = set([fr['bibtexkey'] for fr in full_records])
         missing = [k for k in self.bibtexkeys if not k in found]
@@ -180,7 +201,7 @@ class Jabrefy(Plumbing):
         to jabref format
         '''
         infile_name = os.environ.get('mbib_target', None)
-        db = hub.dbfile
+        db = self.dbfile()
 
         if infile_name is None:
             sys.exit('you must specify a target file name')
@@ -239,7 +260,7 @@ class Jabrefy(Plumbing):
             bibfile_name = os.path.splitext(outfile_name)[0] + '.bib'
             bibfile = open(bibfile_name, 'w')
 
-            formatter = Imex().format_bibtex
+            formatter = self.imex().format_bibtex
 
             for record in records:
                 bibfile.write(formatter(record) + "\n\n")
@@ -259,13 +280,13 @@ class SyncBibtex(Plumbing):
         synchronize database with default bibtex file. Come to think of it, we should
         probably check the file date on the core database and the bibtexfile.
         '''
-        db = hub.dbfile
+        db = self.dbfile()
         bt = os.getenv('mbib_target') or config['paths']['bibtex_export']
         clobber = os.getenv('mbib_clobber', False)
 
         if not clobber and os.path.exists(bt) and \
             (os.stat(db).st_mtime <= os.stat(bt).st_mtime):
-            raise SystemExit("File %s is up to date - exiting" % bt)
+            sys.exit("File %s is up to date - exiting" % bt)
 
         folder_name = os.getenv('mbib_folder')
 
@@ -275,32 +296,85 @@ class SyncBibtex(Plumbing):
 
         else:
             stmt = "select branch_id from branches where name = (?)"
-            ids = self._db.execute(stmt, [folder_name]).fetchvalues()
+            ids = self.db().execute(stmt, [folder_name]).fetchvalues()
 
             if len(ids) > 0:
                 id_list = ids
             else:
-                raise SystemExit("Database %s contains no folders named '%s'" % (db, folder_name))
+                sys.exit("Database %s contains no folders named '%s'" % (db, folder_name))
 
-        hub.export_bibtex(folder_ids=id_list, file_name=bt, batch=True)
+        self.hub().export_bibtex(folder_ids=id_list, file_name=bt, batch=True)
+
+
+class AuxExport(Plumbing):
+    '''
+    parse an aux file and generate the requested bib file on the fly.
+    '''
+    def append_ext(self, fn, ext):
+        '''
+        append default extension if file name has none
+        '''
+        frags = os.path.splitext(fn)
+        if frags[1] == '':
+            fn += ext
+        return fn
+
+
+    def __call__(self, run_bibtex=False):
+        '''
+        synchronize database with default bibtex file. Come to think of it, we should
+        probably check the file date on the core database and the bibtexfile.
+        '''
+        auxfile = os.getenv('mbib_target')
+
+        if auxfile is None:
+            sys.exit('No aux file given')
+
+        auxfile = self.append_ext(auxfile, '.aux')
+
+        if not os.path.isfile(auxfile):
+            sys.exit('aux file %s not found' % auxfile)
+
+        parser = AuxFileParser()
+        bibfile, citations = parser(auxfile)
+
+        bibfile = self.append_ext(bibfile, '.bib')
+        bibfile = os.path.realpath(bibfile)
+
+        if len(citations) is None:
+            sys.exit('found no citations in %s - exiting' % auxfile)
+
+        # clobber = os.getenv('mbib_clobber', False)
+        # we would have to parse both the bibtex file and the auxfile to know if
+        # the bibfile is still up to date. More trouble than it's worth.
+
+        self.hub().export_bibtex(ref_keys=citations, file_name=bibfile, batch=True)
+        if run_bibtex:
+            command = config['bibtex']['command'] % os.path.basename(auxfile)
+            os.system(command)
 
 
 class BatchMode(object):
 
-    def __init__(self, arguments):
-        self.arguments = arguments
+    def __init__(self, task):
+        self.task = task
 
     def __call__(self):
-        func_name = self.arguments[0]
 
-        if func_name == 'jabrefy':
+        if self.task == 'jabrefy':
             Jabrefy()()
 
-        elif func_name == 'sync':
+        elif self.task == 'sync':
             SyncBibtex()()
 
+        elif self.task == 'auxexport':
+            AuxExport()()
+
+        elif self.task == 'auxbibtex':
+            AuxExport()(True)
+
         else:
-            sys.exit("don't know how command '%s'" % func_name)
+            sys.exit("don't know how command '%s'" % self.task)
 
 
 
