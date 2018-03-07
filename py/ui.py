@@ -34,6 +34,7 @@ class SelectionMenu(ResetStatusMixin, dialog.Menu):
         ('bibtex_selected', 'Export selected references to BibTex','b'),
         None,
         ('mail_selected','Email PDF files of selected references', 'm'),
+        None,
         ('deselect_all', 'Deselect all selected items', 't'),
         ('confirm_delete_selected', 'Delete all selected items', 'd'),
     ]
@@ -90,6 +91,11 @@ class BibMenu(ResetStatusMixin, dialog.Menu):
         ref_delete_others = ('confirm_delete_others', 'Delete from other folders', 'k'),
         ref_erase = ('confirm_erase', 'Delete from all folders', 'r'),
         ref_oocite = ('oo_cite', 'Cite in OpenOffice', 'o'),
+        ref_texcite = ('cite_current_latex', 'Cite in LaTeX', 't'),
+        ref_clipboard = ('ref_xclip', 'Copy bibtex key to clipboard', 'c'),
+        ref_bibtex = ('bibtex_filename', 'Export to BibTex', 'b'),
+        ref_html = ('html_filename', 'Export to HTML file', 'h'),
+        ref_email = ('email_current', 'Email current PDF', 'm'),
         #
         branch_details = ('toggle_view', 'Expand/collapse', 'x'),
         branch_new_ref = ('create_ref', 'Add new reference', 'r'),
@@ -124,14 +130,40 @@ class BibMenu(ResetStatusMixin, dialog.Menu):
     )
 
 
+    '''
+    new structure for reference could be:
+
+    show details
+    edit details
+    show pdf file
+
+    cite in TeX
+    cite in openoffice
+    copy bibtex key to clipboard
+
+    export to HTML
+    export to BibTex
+
+    delete from folder
+    delete from other folders
+    delete from all folders
+
+    '''
     menus = {
         'ref' : {
             'default' : (
                 _items['ref_details'],
                 _items['ref_edit'],
                 None,
-                _items['ref_oocite'],
                 _items['ref_pdf'],
+                _items['ref_email'],
+                None,
+                _items['ref_texcite'],
+                _items['ref_oocite'],
+                _items['ref_clipboard'],
+                None,
+                _items['ref_bibtex'],
+                _items['ref_html'],
                 None,
                 _items['ref_delete'],
                 _items['ref_delete_others'],
@@ -868,10 +900,12 @@ class SelectedToBibtex(dialog.SimpleEdit):
 hub.register('bibtex_selected', lambda *a: SelectedToBibtex().show() )
 
 
-class BibfileInput(dialog.SimpleEdit):
+class BibFileInput(dialog.SimpleEdit):
     '''
-    just specify a folder name. There seems to be no file browser widget;
+    just specify a file name. There seems to be no file browser widget;
     we will simply use os.path.abspath to evaluate the string given here.
+
+    We could of course use a tkinter dialog.
     '''
     title = "Export BibTex file"
     prompt = "File name:"
@@ -881,7 +915,7 @@ class BibfileInput(dialog.SimpleEdit):
     def setup(self):
         self.__super.setup()
         self.node = hub.tree.focus_element()
-        assert hub.is_branch(self.node)
+        # assert hub.is_branch(self.node)
 
     def initial_text(self):
         '''
@@ -896,10 +930,10 @@ class BibfileInput(dialog.SimpleEdit):
         '''
         hub.export_bibtex(node=self.node, file_name=self.get_edit_text())
 
-hub.register('bibtex_filename', lambda *a: BibfileInput().show())
+hub.register('bibtex_filename', lambda *a: BibFileInput().show())
 
 
-class HtmlfileInput(dialog.SimpleEdit):
+class HtmlFileInput(dialog.SimpleEdit):
     '''
     just specify a folder name. There seems to be no file browser widget;
     we will simply use os.path.abspath to evaluate the string given here.
@@ -912,7 +946,7 @@ class HtmlfileInput(dialog.SimpleEdit):
     def setup(self):
         self.__super.setup()
         self.node = hub.tree.focus_element()
-        assert hub.is_branch(self.node)
+        # assert hub.is_branch(self.node)
 
     def initial_text(self):
         '''
@@ -927,7 +961,7 @@ class HtmlfileInput(dialog.SimpleEdit):
         '''
         hub.export_html(node=self.node, file_name=self.get_edit_text())
 
-hub.register('html_filename', lambda *a: BibfileInput().show())
+hub.register('html_filename', lambda *a: HtmlFileInput().show())
 
 
 class CiteInput(dialog.SimpleEdit):

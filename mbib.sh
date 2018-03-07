@@ -1,10 +1,14 @@
 #!/bin/bash
 
-export script_name="${BASH_SOURCE[0]}"
-usage() { echo "Usage: $script_name [-d <database file>] [-i <ini file>] [-b <batch operation>] [-f <folder>] [-t <target file>] [-c (clobber target files)]" 1>&2; exit 1; }
+# determine path to script and directory
+
+export mbib_sh="${BASH_SOURCE[0]}"
+export mbib_dir="$( cd "$( dirname "$mbib_sh" )" && pwd )"
+
+usage() { echo "Usage: $mbib_sh [-d <database file>] [-i <ini file>] [-b <batch operation>] [-f <folder>] [-t <target file>] [-c (clobber target files)]" 1>&2; exit 1; }
 
 # default ini file - can be overridden using -b option
-export mbib_ini="$HOME/.mbib.ini"
+export mbib_ini="${mbib_dir}/data/mbib.ini"
 
 while getopts ":d:i:b:t:f:hc" opt; do
     case $opt in
@@ -49,8 +53,6 @@ if [ -z "$mbib_batch" ] && [ ! -z `pgrep -f mbib.py`  ]; then
     exit 1
 fi
 
-# determine directory to that of this script and make available to python
-export mbib_dir="$( cd "$( dirname "$script_name" )" && pwd )"
 
 default_ini="$mbib_dir/resources/default.ini"
 

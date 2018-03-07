@@ -1,4 +1,4 @@
-import subprocess, urllib.parse, collections, re, os
+import subprocess, urllib.parse, collections, re, os, time
 from weakref import proxy
 from config import config
 
@@ -121,7 +121,7 @@ def locate(fn, case_sensitive=False, as_regex=True):
         blurb = p.communicate()[0].decode("utf-8")
         return blurb.strip().split()
 
-    except FileNotFoundError: # this should occur if locate is not installed
+    except FileNotFoundError: # expected if locate is not installed
         return []
 
 
@@ -158,22 +158,23 @@ def pubmed_search_url(data):
     return base_url + encoded
 
 
-def xclip(text, isfile=False):
+def xclip(text, isfile=False, timeout=2):
     """
     Copy text or file contents into X clipboard. Requires xclip to be installed.
     """
     if isfile:
         text = open(text, 'r').read().strip()
 
-    p = subprocess.Popen("xclip -l 1",
+    p = subprocess.Popen("xclip -l 1 -quiet",
                          shell=True,
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE
                         )
-    weg, error = p.communicate(str.encode(text))
+    weg, error = p.communicate(str.encode(text), timeout=timeout)
 
     if len(error) > 1:
+        print(error)
         raise IOError("Copying to clipboard failed - content too large?")
 
 
@@ -207,6 +208,8 @@ def writefile(file_name, text):
     return rv
 
 
+
+
 if __name__ == '__main__':
 
     data = dict(
@@ -217,7 +220,7 @@ if __name__ == '__main__':
              pages = "1642-1647"
            )
 
-    print(pubmed_search_url(data))
+    # print(pubmed_search_url(data))
 
-    xclip("Rhubarb")
+
 

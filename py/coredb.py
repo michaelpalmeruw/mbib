@@ -1,7 +1,7 @@
 import pprint, subprocess, os, glob, shutil
 from collections import defaultdict
-from utils import locate, validate_bibtex_value, userpath
-from config import config
+from utils import locate, validate_bibtex_value
+from config import config, expanded_path
 
 from hub import hub, RefdbError, SqliteDB, IntegrityError
 
@@ -11,8 +11,7 @@ of thing needed to update the UI. Do clipboard operations, searches, import
 etc. elsehwere.
 '''
 
-# if dbfile gotten from os.environ, ~ is already expanded
-dbfile = os.path.realpath(os.getenv("mbib_db", None) or os.path.expanduser(config['paths']['dbfile']))
+dbfile = os.path.realpath(os.getenv("mbib_db", None) or expanded_path('dbfile'))
 db_template = "resources/default.sqlite"  # relative path of empty db
 
 class RefDb(object):
@@ -814,16 +813,17 @@ class RefDb(object):
         '''
         find a pdf filename that matches bibtexkey.
         '''
-        path = userpath(config['paths'].get('pdf'))
+        path = expanded_path('pdf', bibtexkey=bibtexkey)
+        # print('pdf path', path)
 
         if path is not None:
-            found = glob.glob(path % bibtexkey)
+            found = glob.glob(path, recursive=True)
         else:
             found = []
 
-        if not len(found) and config['paths'].getboolean('pdf_locate'):
+        if not len(found) and config['preferences'].getboolean('pdf_locate'):
             fname = bibtexkey + '.pdf'
-            found = locate(r'\/' + fname + '$', case_sensitive=False, as_regex=True)
+            found = locate(r'\/' + fname + '$', case_sensitive=True, as_regex=True)
 
         if len(found):
             return found[0]
@@ -1202,6 +1202,7 @@ _db = RefDb()
 hub.register('coredb', _db)
 
 _export = '''
+          bibtexkey_for_node
           clear_cache
           extend_refs
           filter_folders

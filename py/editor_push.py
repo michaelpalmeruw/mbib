@@ -96,10 +96,10 @@ class EditorPusher(object):
         # Block until new message arrives
         # msg = sock.recv(10)
 
-        # forsooth. All this does is slow everything down ...
+        # forsooth. All sock.recv does is slow everything down ...
         # if we axe it, everything works smoothly. We
-        # can probably rely on getting some exception if
-        # the connection fails and not bother with the reply.
+        # can probably rely on getting some exception if the
+        # connection fails and need not bother with the reply.
 
         # When the socket is closed cleanly, recv unblocks and returns ""
         # if not msg:
@@ -117,20 +117,19 @@ class EditorPusher(object):
 
         self.cite(','.join(selected_refs))
 
-    def cite_selected_node(self, node=None):
-        '''
-        cite reference key in latex.
-        '''
-        if node is None:
-            node = hub.tree.focus_element()
-        assert hub.is_ref(node), "Can cite only references, not folders"
 
-
+    def cite_current_latex(self):
+        '''
+        get key of current node and cite it in latex
+        '''
+        key = hub.bibtexkey_for_node()
+        self.cite(key)
 
 
 
 _export = '''
           cite_selected_latex
+          cite_current_latex
           '''
 
 hub.register_many(_export.split(), EditorPusher())

@@ -421,7 +421,7 @@ class Imex(object):
         export records as html. Maybe we should update this to
         accepting nodelist rather than a single node also.
         '''
-        records = self.get_export_records(nodelist=[node])
+        records = self.get_export_records(node=node)
         output = OlFormatter(records)()
         self.write_export_records(output, file_name, batch)
 

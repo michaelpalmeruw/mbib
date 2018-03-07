@@ -6,6 +6,7 @@ private/
 
 # backups
 *~
+*.bak
 
 # documentation - auxiliary files. 
 docs/*.aux
@@ -19,4 +20,9 @@ docs/screenshots/
 
 # folder with throwaway test files
 test/
+
+# folder with user data
+data/*.sqlite
+data/*.ini
+data/pdf/myrefs
 

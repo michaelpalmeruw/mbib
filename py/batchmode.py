@@ -350,7 +350,8 @@ class AuxExport(Plumbing):
 
         self.hub().export_bibtex(ref_keys=citations, file_name=bibfile, batch=True)
         if run_bibtex:
-            command = config['bibtex']['command'] % os.path.basename(auxfile)
+            command = config['bibtex']['command']
+            command = command.format(auxfile=os.path.basename(auxfile))
             os.system(command)
 
 

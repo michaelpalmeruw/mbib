@@ -122,15 +122,14 @@ class LibreOffice(object):
                 # access the document's text property
                 self.text = self.model.Text
 
-                # bibus has a lot of ministrations here regarding the actual bibliography, but I want to see
-                # if I can get away with just leaving it alone.
+                # bibus has a lot of ministrations here regarding the actual bibliography,
+                # but I want to see if I can get away with just leaving it alone.
 
             else:
-                #print "You must have a text document opened in OpenOffice.org in oder to be able to use this menu"
-                raise(ConnectionError("No text document active"))
+                raise ConnectionError
 
         except DisposedException as e:
-            raise ConnectionError("No text document active")
+            raise ConnectionError
 
 
     def insert_ref(self, refdict):
@@ -140,7 +139,7 @@ class LibreOffice(object):
         try:
             self.get_document()
         except ConnectionError:
-            hub.show_errors("No Writer document active")
+            hub.show_errors("No active Writer document found")
             return
 
         ref = self.model.createInstance("com.sun.star.text.TextField.Bibliography")

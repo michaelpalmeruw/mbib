@@ -453,6 +453,14 @@ class Selections(object):
         return sorted(keys)
 
 
+    def ref_xclip(self):
+        '''
+        copy key of reference in current node to clipboard
+        '''
+        key = self.bibtexkey_for_node()
+        xclip(key)
+
+
     def xclip_selected(self):
         '''
         copy bibtexkeys to clip board. Maybe one day we can generalize this to
@@ -520,6 +528,7 @@ _export = '''
           get_selected_refs_full
           mail_selected
           move_selected
+          ref_xclip
           select_refs
           toggle_select
           xclip_selected
