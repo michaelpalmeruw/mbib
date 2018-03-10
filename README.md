@@ -1,5 +1,23 @@
 # mbib
-Bibliography manager for Linux, for use with both LaTeX and OpenOffice/Libreoffice
+Bibliography manager for Linux, for use with both LaTeX and OpenOffice/Libreoffice,
+capable of handling large databases with ease
+
+Features:
+
+- Import from and export to BibTex
+
+- Import records from DOI and PubMed identifiers
+
+- Push citations to Texmaker/TexStudio
+
+- Push citations to OpenOffice.org/LibreOffice. Formatting of bibliographies in piggybacks on JabRef. Thus, you need to have JabRef installed in order to fully use mbib with OOo/LO
+
+- Written in Python3
+
+- Console-based GUI, based on the urwid and urwidtrees Python libraries
+
+- Data are stored in a SQLite database
+
 
 Status: the code is reasonably complete and working. The documentation has a
 tutorial that covers most topics, but the reference part is missing.
