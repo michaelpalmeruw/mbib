@@ -8,6 +8,7 @@ batch_arg = os.getenv('mbib_batch')
 if batch_arg is None:
     from bibapp import BibApp
     from hub import hub
+    hub.is_batch = False
     _app = BibApp()
     hub.register('app', _app)
     hub.register('tree', _app.tree)

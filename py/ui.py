@@ -5,7 +5,7 @@ import urwid, pprint, time
 from urwidtools import dialog, widgets, application
 
 from hub import hub
-from utils import pubmed_search_url, xclip
+from utils import pubmed_search_url, xsel
 from config import config
 
 class ResetStatusMixin(object):
@@ -13,7 +13,7 @@ class ResetStatusMixin(object):
     let dialogs erase the previous status line upon opening
     '''
     def setup(self):
-        hub.app.set_status("")
+        hub.set_status_bar("")
         super(ResetStatusMixin, self).setup()
 
 class SelectionMenu(ResetStatusMixin, dialog.Menu):
@@ -28,7 +28,7 @@ class SelectionMenu(ResetStatusMixin, dialog.Menu):
     choices = [
         ('cite_selected_oo', 'Cite in OpenOffice', 'o'),
         ('cite_selected_latex', 'Cite in TexStudio or Texmaker', 'l'),
-        ('xclip_selected', 'Copy selected bibtex keys to X clipboard'),
+        ('xsel_selected', 'Copy selected bibtex keys to X clipboard'),
         None,
         ('html_selected', 'Export selected references to HTML','h'),
         ('bibtex_selected', 'Export selected references to BibTex','b'),
@@ -92,10 +92,10 @@ class BibMenu(ResetStatusMixin, dialog.Menu):
         ref_erase = ('confirm_erase', 'Delete from all folders', 'r'),
         ref_oocite = ('oo_cite', 'Cite in OpenOffice', 'o'),
         ref_texcite = ('cite_current_latex', 'Cite in LaTeX', 't'),
-        ref_clipboard = ('ref_xclip', 'Copy bibtex key to clipboard', 'c'),
+        ref_clipboard = ('ref_xsel', 'Copy bibtex key to clipboard', 'c'),
         ref_bibtex = ('bibtex_filename', 'Export to BibTex', 'b'),
         ref_html = ('html_filename', 'Export to HTML file', 'h'),
-        ref_email = ('email_current', 'Email current PDF', 'm'),
+        ref_email = ('mail_current', 'Email current PDF', 'm'),
         #
         branch_details = ('toggle_view', 'Expand/collapse', 'x'),
         branch_new_ref = ('create_ref', 'Add new reference', 'r'),
@@ -177,20 +177,26 @@ class BibMenu(ResetStatusMixin, dialog.Menu):
             'in_recycled' : (
                 _items['ref_details'],
                 _items['ref_edit'],
-                None,
-                _items['ref_oocite'],
                 _items['ref_pdf'],
                 None,
                 _items['ref_delete']
             ),
             #
-            'in_search' :( # deleting a ref from a search result makes little sense.
+            'in_search' :( # deleting a ref from a search result makes little sense. Otherwise, the works.
                 _items['ref_details'],
                 _items['ref_edit'],
                 None,
-                _items['ref_oocite'],
                 _items['ref_pdf'],
+                _items['ref_email'],
                 None,
+                _items['ref_texcite'],
+                _items['ref_oocite'],
+                _items['ref_clipboard'],
+                None,
+                _items['ref_bibtex'],
+                _items['ref_html'],
+                None,
+                _items['ref_delete_others'],
                 _items['ref_erase']
             ),
         },
@@ -231,6 +237,7 @@ class BibMenu(ResetStatusMixin, dialog.Menu):
         'references' : (
                 _items['branch_details'],
                 _items['branch_new_folder'],
+                None,
                 _items['branch_move'],
                 _items['branch_bibtex'],
                 _items['branch_html'],
@@ -400,7 +407,7 @@ class RefEditBase(ResetStatusMixin, dialog.DialogWithLabels):
 
 class RefEdit(RefEditBase):
 
-    xclip_key = hub.keys['xclip_selected'] #  "meta x"  # I guess this could also be made configurable
+    xsel_key = hub.keys['xsel_selected'] #  "meta x"  # I guess this could also be made configurable
 
     def __init__(self, errors, *a, **kw):
         self.messages = errors
@@ -419,7 +426,7 @@ class RefEdit(RefEditBase):
 
     def keypress(self, size, key):
 
-        if hub.mogrify_key(key) == self.xclip_key:
+        if hub.mogrify_key(key) == self.xsel_key:
             f = self.focused_widget()
 
             for attr in 'edit_text', 'text', 'label': # label is for buttons - not sure if text is used at all
@@ -430,7 +437,7 @@ class RefEdit(RefEditBase):
                 value = str(f)
 
             if value is not None:
-                xclip(value)
+                xsel(value)
 
             return None
 
@@ -595,7 +602,7 @@ class BranchEdit(dialog.SimpleEdit):
         if self.current_name != new_name:
             hub.update_branch(self.node, self.current_name, new_name)
 
-hub.register('branch_edit', lambda *a, **kw: BranchEdit(*a, **kw).show())
+    hub.register('branch_edit', lambda *a, **kw: BranchEdit(*a, **kw).show())
 
 
 class BranchFilter(dialog.SimpleEdit):
@@ -709,12 +716,63 @@ class NodeConfirmation(MbibConfirmation):
         method(self.node)
 
 
+class MbibInput(dialog.SimpleEdit):
+    '''
+    boilerplate to make input dialogs more declarative
+    '''
+    title = "I'm a dialog"
+    prompt = "Type something:"
+    multiline = False
+
+    processor_name = "do_stuff"
+    processor_args = dict(node="node", file_name="edit_text")
+
+    def setup(self):
+        self.__super.setup()
+        self.node = hub.tree.focus_element()
+        self.label_width = len(self.prompt)
+
+    edit_text = property(lambda self: self.get_edit_text())
+
+    def initial_text(self):
+        return ""
+
+    def process(self):
+        '''
+        invoke configured processor on current node
+        '''
+        method = getattr(hub, self.processor_name)
+        args = { key : getattr(self, value) for key, value in self.processor_args.items() }
+
+        method(**args)
+
+
+class MbibFileInput(MbibInput):
+    '''
+    input with default file name
+    '''
+    prompt = "File name:"
+    extension = ".jnk"
+
+    def _initial_text(self):
+        '''
+        use the node name as the initial text
+        '''
+        node_name, weg = hub.get_node_text(self.node)
+        return node_name.replace(' ','_') + self.extension
+
+    def initial_text(self):
+        if not config['preferences'].getboolean('default_filenames'):
+            return ''
+        return self._initial_text()
+
+
 class ConfirmDelete(NodeConfirmation):
     processor_name = "delete_node"
     ref_question = "Delete %s from this folder?"
     branch_question = "Delete %s?"
 
-hub.register('confirm_delete', lambda *a, **kw: ConfirmDelete(*a, **kw).show())
+    hub.register('confirm_delete', lambda *a, **kw: ConfirmDelete(*a, **kw).show())
 
 
 class ConfirmDeleteOthers(NodeConfirmation):
@@ -722,7 +780,7 @@ class ConfirmDeleteOthers(NodeConfirmation):
     ref_question = "Delete %s from all other folders?"
     branch_question = "Delete references in %s from all other folders?"
 
-hub.register('confirm_delete_others', lambda *a, **kw: ConfirmDeleteOthers(*a, **kw).show())
+    hub.register('confirm_delete_others', lambda *a, **kw: ConfirmDeleteOthers(*a, **kw).show())
 
 
 class ConfirmErase(NodeConfirmation):
@@ -730,14 +788,15 @@ class ConfirmErase(NodeConfirmation):
     processor_name = "erase_node"
     ref_question = "Delete %s from ALL folders?"
 
-hub.register('confirm_erase', lambda *a, **kw: ConfirmErase(*a, **kw).show())
+    hub.register('confirm_erase', lambda *a, **kw: ConfirmErase(*a, **kw).show())
+
 
 class ConfirmFlatten(NodeConfirmation):
     outer_height = 13
     processor_name="flatten_folder"
     branch_question = "Erase all nested sub-folders and move their references to folder '%s'?"
 
-hub.register('confirm_flatten', lambda *a, **kw: ConfirmFlatten(*a, **kw).show())
+    hub.register('confirm_flatten', lambda *a, **kw: ConfirmFlatten(*a, **kw).show())
 
 
 class SearchForm(RefAdd):
@@ -788,7 +847,7 @@ class SearchForm(RefAdd):
         '''
         hub.search_references(self.get_data())
 
-hub.register('new_search', lambda *a: SearchForm().show())
+    hub.register('new_search', lambda *a: SearchForm().show())
 
 
 class EditSearch(SearchForm):
@@ -804,103 +863,67 @@ class EditSearch(SearchForm):
         else:
             self.title = "New search (no stored search available)"
 
-hub.register('edit_search', lambda *a: EditSearch().show())
+    hub.register('edit_search', lambda *a: EditSearch().show())
 
 
-class PubmedInput(dialog.SimpleEdit):
+class PubmedInput(MbibInput):
     title = "Import from Pubmed"
     prompt = "Paste pmids or give filename:"
-    label_width = len(prompt)
     multiline = True
+    processor_name = "import_pubmed"
+    processor_args = dict(node="node", raw_info="edit_text")
 
-    def setup(self):
-        self.__super.setup()
-        self.node = hub.tree.focus_element()
-
-    def process(self):
-        '''
-        read out any changed data and send them off for processing.
-        '''
-        hub.import_pubmed(self.node, self.get_edit_text())
-
-hub.register('pubmed_input', lambda *a: PubmedInput().show())
+    hub.register('pubmed_input', lambda *a: PubmedInput().show())
 
 
-class DoiInput(dialog.SimpleEdit):
+class DoiInput(PubmedInput):
     title = "Import from DOI"
-    prompt = "Paste dois or give filename:"
-    label_width = len(prompt)
-    multiline = True
+    prompt = "Paste DOIs or give filename:"
+    processor_name = "import_doi"
 
-    def setup(self):
-        self.__super.setup()
-        self.node = hub.tree.focus_element()
-
-    def process(self):
-        '''
-        read out any changed data and send them off for processing.
-        '''
-        hub.import_doi(self.node, self.get_edit_text())
-
-hub.register('doi_input', lambda *a: DoiInput().show())
+    hub.register('doi_input', lambda *a: DoiInput().show())
 
 
-class BibtexInput(dialog.SimpleEdit):
+class BibtexInput(PubmedInput):
     '''
     paste bibtex code for import
     '''
     title = "Import references from BibTex"
     prompt = "paste BibTex or give filename:"
-    label_width = len(prompt)
-    multiline = True
+    processor_name = "import_bibtex"
 
     outer_width = 70
     outer_height = 30
 
-    def setup(self):
-        self.__super.setup()
-        self.node = hub.tree.focus_element()
-
-    def process(self):
-        '''
-        read out any changed data and send them off for processing.
-        '''
-        hub.import_bibtex(self.node, self.get_edit_text())
-
-hub.register('bibtex_input', lambda *a: BibtexInput().show())
+    hub.register('bibtex_input', lambda *a: BibtexInput().show())
 
 
-class SelectedToHtml(dialog.SimpleEdit):
+class SelectedToHtml(MbibFileInput):
     '''
     shove selected references into an HTML file
     '''
     title = "Export selected references to HTML"
-    prompt = "File name:"
-    label_width = len(prompt)
-    multiline = False
+    processor_name = "export_html"
+    processor_args = dict(file_name="edit_text")
+    extension = ".html"
 
-    def process(self):
-        hub.export_html(file_name=self.get_edit_text())
+    _initial_text = lambda self: "selected" + self.extension
 
-hub.register('html_selected', lambda *a: SelectedToHtml().show() )
+    hub.register('html_selected', lambda *a: SelectedToHtml().show() )
 
 
-class SelectedToBibtex(dialog.SimpleEdit):
+class SelectedToBibtex(SelectedToHtml):
     '''
     shove selected references into an HTML file
     '''
     title = "Export selected references to BibTex"
-    prompt = "File name:"
-    label_width = len(prompt)
-    multiline = False
+    processor_name = "export_bibtex"
+    extension = ".bib"
 
-    def process(self):
-        hub.export_bibtex(file_name=self.get_edit_text())
-
-hub.register('bibtex_selected', lambda *a: SelectedToBibtex().show() )
+    hub.register('bibtex_selected', lambda *a: SelectedToBibtex().show() )
 
 
-class BibFileInput(dialog.SimpleEdit):
+class BibFileInput(MbibFileInput):
     '''
     just specify a file name. There seems to be no file browser widget;
     we will simply use os.path.abspath to evaluate the string given here.
@@ -909,125 +932,44 @@ class BibFileInput(dialog.SimpleEdit):
     '''
     title = "Export BibTex file"
     prompt = "File name:"
-    label_width = len(prompt)
-    multiline = False
+    extension = ".bib"
+    processor_name = "export_bibtex"
 
-    def setup(self):
-        self.__super.setup()
-        self.node = hub.tree.focus_element()
-        # assert hub.is_branch(self.node)
-
-    def initial_text(self):
-        '''
-        use the node name as the initial text
-        '''
-        node_name, weg = hub.get_node_text(self.node)
-        return node_name.replace(' ','_') + '.bib'
-
-    def process(self):
-        '''
-        read out any changed data and send them off for processing.
-        '''
-        hub.export_bibtex(node=self.node, file_name=self.get_edit_text())
-
-hub.register('bibtex_filename', lambda *a: BibFileInput().show())
+    hub.register('bibtex_filename', lambda *a: BibFileInput().show())
 
 
-class HtmlFileInput(dialog.SimpleEdit):
+class HtmlFileInput(MbibFileInput):
     '''
     just specify a folder name. There seems to be no file browser widget;
     we will simply use os.path.abspath to evaluate the string given here.
     '''
     title = "Export HTML file"
     prompt = "File name:"
-    label_width = len(prompt)
-    multiline = False
+    extension = '.html'
+    processor_name = "export_html"
 
-    def setup(self):
-        self.__super.setup()
-        self.node = hub.tree.focus_element()
-        # assert hub.is_branch(self.node)
-
-    def initial_text(self):
-        '''
-        use the node name as the initial text
-        '''
-        node_name, weg = hub.get_node_text(self.node)
-        return node_name.replace(' ','_') + '.html'
-
-    def process(self):
-        '''
-        read out any changed data and send them off for processing.
-        '''
-        hub.export_html(node=self.node, file_name=self.get_edit_text())
-
-hub.register('html_filename', lambda *a: HtmlFileInput().show())
+    hub.register('html_filename', lambda *a: HtmlFileInput().show())
 
 
-class CiteInput(dialog.SimpleEdit):
+class CiteInput(MbibInput):
     '''
     shortcut for citing a reference by exact bibtexkey
-    we use 'like', however, to make the search case-insensitive.
     '''
     title = "Cite reference in OOo"
     prompt = "BibTeX key:"
-    label_width = len(prompt)
-    multiline = False
+    processor_name = "cite_by_key"
+    processor_args = dict(bibtexkey="edit_text")
 
-    def process(self):
-        hub.cite_by_key(self.get_edit_text())
-
-hub.register('cite_key_input', lambda *a: CiteInput().show())
+    hub.register('cite_key_input', lambda *a: CiteInput().show())
 
 
-class PdfInput(dialog.SimpleEdit):
+class PdfInput(CiteInput):
     '''
     shortcut for citing a reference by exact bibtexkey
     we use 'like', however, to make the search case-insensitive.
     '''
     title = "Show a PDF file"
-    prompt = "BibTeX key:"
-    label_width = len(prompt)
-    multiline = False
+    processor_name = "show_pdf_bibtexkey"
 
-    def process(self):
-        hub.show_pdf_bibtexkey(self.get_edit_text())
-
-hub.register('pdf_key_input', lambda *a: PdfInput().show())
-
-
-"""
-class EditKeywords(dialog.SimpleEdit):
-    '''
-    retired - simply moving up keywords in the sequence of
-    fields does the job.
-
-    edit keywords for highlighted reference. We will just
-    pretend that the
-    '''
-    title = "Edit keywords"
-    prompt = "Keywords:"
-    label_width = len(prompt)
-    multiline = True
-
-    def setup(self):
-        self.__super.setup()
-        self.reference = hub.tree.focus_element()
-        self.stored_data = hub.get_ref_dict(self.reference)
-        self.old_keywords = self.stored_data.get('keywords', '')
-
-    def initial_text(self):
-        return self.old_keywords.strip()
-
-    def process(self):
-        '''
-        update keywords
-        '''
-        new_data = dict(keywords=self.get_edit_text())
-        hub.update_reference(self.stored_data, new_data)
-
-
-hub.register('edit_keywords', lambda *a: EditKeywords().show())
-"""
-
+    hub.register('pdf_key_input', lambda *a: PdfInput().show())
 

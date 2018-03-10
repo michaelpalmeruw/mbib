@@ -158,55 +158,65 @@ def pubmed_search_url(data):
     return base_url + encoded
 
 
-def xclip(text, isfile=False, timeout=2):
+def xsel(text, isfile=False, timeout=2, max_size=128):
     """
-    Copy text or file contents into X clipboard. Requires xclip to be installed.
+    Copy text or file contents into X clipboard. Requires xsel to be installed.
     """
     if isfile:
         text = open(text, 'r').read().strip()
 
-    p = subprocess.Popen("xclip -l 1 -quiet",
+    if len(text) > max_size * 1024:
+        raise ValueError("String exceeded %s kb, not copied to clipboard" % max_size)
+
+    p = subprocess.Popen("xsel -i",
                          shell=True,
                          stdin=subprocess.PIPE,
                          stdout=subprocess.PIPE,
                          stderr=subprocess.PIPE
                         )
-    weg, error = p.communicate(str.encode(text), timeout=timeout)
-
-    if len(error) > 1:
-        print(error)
-        raise IOError("Copying to clipboard failed - content too large?")
-
-
-def userpath(raw_path):
-    '''
-    append rawpath to user home directory
-    '''
-    home_dir = os.path.expanduser('~')
-    full_path = os.path.join(home_dir,raw_path)
-    return os.path.normpath(full_path)
+    try:
+        weg, error = p.communicate(str.encode(text), timeout=timeout)
+    except:
+        raise IOError("Copying to clipboard failed")
 
 
 def writefile(file_name, text):
     '''
-    'xclip' is used as a magic filename set sends the output to the clipboard
-    instead of a file.
+    if file_name is empty, output is sent to clipboard.
 
     All other file names and paths are interpreted relative to the user's
     home directory. Howabout using makedirs?
     '''
-    xclip_name = config['paths']['xclip']
-
-    if not file_name or file_name == xclip_name:
+    if not file_name:
         rv = 'clipboard'
-        xclip(text)
+        xsel(text)
     else:
-        full_name = userpath(file_name)
-        open(full_name,'w').write(text)
-        rv = full_name.replace(os.path.expanduser('~'), '~')
+        open(file_name,'w').write(text)
+        rv = file_name.replace(os.path.expanduser('~'), '~')
 
     return rv
 
+
+class Null(object):
+    '''
+    An object that doesn't complain about anything we ask of it.
+    Essentially from Python cookbook p.278.
+    '''
+    def __init__(self, *a, **kw):
+        pass
+
+    def __iter__(self):
+        return iter(())
+
+    def __repr__(self):
+        return 'Null()'
+
+    def __nonzero__(self):
+        return False
+
+    __getitem__ = __setitem__ = __delitem__ = \
+    __setattr__ = __getattr__ = __delattr__ = \
+    __call__ = lambda self, *a, **kw: self
 
 
 
@@ -222,5 +232,8 @@ if __name__ == '__main__':
 
     # print(pubmed_search_url(data))
 
-
+    n = Null()
+    n.harakiri()
+    for i in n: # empty iterator
+        1/0
 

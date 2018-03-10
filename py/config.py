@@ -1,7 +1,7 @@
 import os
 from configparser import ConfigParser
 
-config_path = os.getenv("mbib_ini", "~/.mbib.ini")
+config_path = os.getenv("mbib_ini")
 config_path = os.path.expanduser(config_path)
 
 def read_config():

@@ -2,11 +2,20 @@
 format a set of references to reasonable html. harrrumph.
 I guess I want to reuse this after all. However, I will
 keep it dumb and subordinate it to imex.
+
+Need to deal with missing values some time - switch to some
+custom formatter that substitutes values.
+
+Well, this is really rather slow, much slower than bibtex -
+can we speed it up a bit? Or at least give it a progress
+bar.
 '''
 import sys, re, textwrap, pprint
 from latex2html import Latex2Html
+from hub import hub
 
-class HtmlFormatter(object):
+
+class ReferenceFormatter(object):
 
     # formats for different types of records
     journal_with_url = '''\
@@ -34,17 +43,16 @@ class HtmlFormatter(object):
     misc_with_url = '''\
         %(author)s (%(year)s)
         <a href="%(url)s" target="_blank">%(title)s</a>.
-        %(howpublished)s.
+        %(reftype)s.
     '''
 
     misc_no_url = '''\
         %(author)s (%(year)s)
         %(title)s.
-        %(howpublished)s.
+        %(reftype)s.
     '''
 
-    other_stuff = 'something else: %(bibliographictype)s (%(identifier)s)'
-
+    other_stuff = 'something else: %(reftype)s (%(bibtexkey)s)'
 
     url_prefixes = dict(
         url = "",
@@ -52,16 +60,7 @@ class HtmlFormatter(object):
         pmid = "https://www.ncbi.nlm.nih.gov/pubmed/?term="
     )
 
-
-    def __init__(self, reflist, sort_key=lambda r: -r['year']):
-        '''
-        ok, we work on a list of references, not just on a single one. Got it.
-        '''
-        if sort_key is not None:
-            reflist.sort(key=sort_key)
-        self.reflist = reflist
-        self.latex2html = Latex2Html()
-
+    latex2html = Latex2Html()
 
     def format_authors(self, ref):
         '''
@@ -112,7 +111,7 @@ class HtmlFormatter(object):
                 ref[key] = self.latex2html(ref[key])
 
 
-    def format_reference(self, ref):
+    def __call__(self, ref):
         self.format_entries(ref)
 
         reftype = ref['reftype']
@@ -146,79 +145,82 @@ class HtmlFormatter(object):
         ref.setdefault('volume', '-')
         ref.setdefault('pages', 'x-x')
 
+        # return fs % ref
         return fs % ref
 
 
-        #try:
-            #return fs % ref
-        #except KeyError:
-            #ref = pprint.pformat(ref)
-            #return '<span class="error" style="color:red">%s</span>' % ref
-
-
-    def __call__(self):
-        return [ self.format_reference(ref) for ref in self.reflist ]
-
-
-class OlFormatter(HtmlFormatter):
+class OlFormatter(object):
     '''
     stuff the formatted entries into an ordered list.
     '''
-    list_wrapper = '<ol class="references">\n%s\n</ol>'
+    list_wrapper = '<html>\n<ol class="references">\n%s\n</ol>\n</html>'
     entry_wrapper = '<li id="%s%s">%s</li>'
     ws_re = re.compile('\s+')
 
-    def __call__(self, id_prefix="ref"):
-        entries = HtmlFormatter.__call__(self)
+    text_wrapper = textwrap.TextWrapper(
+                                initial_indent = ' ' * 4,
+                                subsequent_indent = ' ' * 8,
+                                width=100,
+                                break_on_hyphens = False
+                            ).fill
+
+    def __init__(self, reflist, sort_key="year", reverse_sort=False, id_prefix="ref"):
+        '''
+        ok, we work on a list of references, not just on a single one. Got it.
+        '''
+        dflt = 0 if sort_key == "year" else ""
+        sort_function = lambda r: r.get(sort_key, dflt)
+        self.reflist = sorted(reflist, key=sort_function, reverse=reverse_sort)
+
+        self.id_prefix = id_prefix
+        self._formatter = ReferenceFormatter()
+
+
+    def format_ref(self, ref, index):
+        '''
+        format an individual reference entry
+        '''
+        e = self._formatter(ref).strip()
+        e = self.ws_re.sub(' ', e)
+        e = self.entry_wrapper % (self.id_prefix, index, e)
+
+        return [self.text_wrapper(e)]
+
+
+    def __call__(self):
+        progress_bar = hub.progress_bar(len(self.reflist), title="Formatting references")
+        progress_bar.show()
+
         formatted = []
 
-        for i, e in enumerate(entries):
-            e = e.strip()
-            e = self.ws_re.sub(' ', e)
-            e = self.entry_wrapper % (id_prefix, i+1, e)
-
-            formatted.append(textwrap.fill(e,
-                                           initial_indent = ' ' * 4,
-                                           subsequent_indent = ' ' * 8,
-                                           width=100,
-                                           break_on_hyphens = False))
+        for i, r in enumerate(self.reflist):
+            progress_bar.update(i+1)
+            formatted.extend(self.format_ref(r, i+1))
 
         return self.list_wrapper % '\n'.join(formatted)
 
 
-class DlFormatter(HtmlFormatter):
+class DlFormatter(OlFormatter):
     '''
     stuff everything into a definition list, with the reference keys
     as the entries. Yeah. That should help with inserting citations.
+
+    need to derive this properly from the declared parent class
     '''
-    list_wrapper = '<dl>\n%s\n</dl>'
+    list_wrapper = '<html>\n<dl>\n%s\n</dl>\n</html>'
     dt_wrapper = '<dt id="%s%s">%s</dt>'
     dd_wrapper = '<dd>%s</dd>\n'
-    ws_re = re.compile('\s+')
 
-    def __call__(self, id_prefix="ref"):
-        formatted = []
+    def format_ref(self, ref, index):
+        '''
+        format an individual reference entry
+        '''
+        dt = self.dt_wrapper % (self.id_prefix, index, ref['bibtexkey'])
 
-        for i, reference in enumerate(self.reflist):
-            dt = reference['bibtexkey']
-            formatted.append(self.dt_wrapper % (id_prefix, i+1, dt))
+        e = self._formatter(ref).strip()
+        e = self.ws_re.sub(' ', e)
+        dd = self.dd_wrapper % e
 
-            entry = self.format_reference(reference).strip()
-            entry = self.ws_re.sub(' ', entry)
-            entry = self.dd_wrapper % entry
+        return [dt, self.text_wrapper(dd)]
 
-            formatted.append(textwrap.fill(entry, initial_indent=' ' * 4, subsequent_indent=' ' * 8))
-
-        return self.list_wrapper % '\n'.join(formatted)
-
-
-
-if __name__ == '__main__':
-
-    from hub import hub
-
-    refs = hub.get_selected_refs_full()
-    formatter = OlFormatter(refs, None)
-
-    print(formatter())
 

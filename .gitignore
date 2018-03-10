@@ -22,7 +22,7 @@ docs/screenshots/
 test/
 
 # folder with user data
-data/*.sqlite
-data/*.ini
+data/*.sqlite*
+data/*.ini*
 data/pdf/myrefs
 

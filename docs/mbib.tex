@@ -1,7 +1,9 @@
 % LaTeX documentation for mbib. It loads some of my personal packages;
 % therefore, this documentation won't compile out of the box after
 % cloning the repository. 
-
+%
+% The screenshot console windows were, for the most part, 80x25 characters 
+% big. console window font size was 16 (Consolas)
 
 \documentclass[10pt]{article}
 
@@ -28,7 +30,8 @@
 \newcommand{\screenshot}[2][]{%
 \medskip\par
 \begin{center}
-\includegraphics[width=1300px,#1]{/data/code/mbib/docs/screenshots/#2}
+%\includegraphics[width=1300px,#1]{/data/code/mbib/docs/screenshots/#2}
+\includegraphics{/data/code/mbib/docs/screenshots/#2}
 \end{center}}
 
 \MakeShortVerb{\~}
@@ -37,11 +40,11 @@
 
 \section*{\mbib Documentation}
 
-\emph{As of \today, the tutorial is nearing completion, but the reference section is still missing.}
+\emph{As of \today, the tutorial section is nearing completion, but the reference section is still missing.}
 
 \bigskip
 
-\noindent \mbib is a literature manager, with capabilities similar to \href{http://www.jabref.org}{\jabref}, but intended to better cope with large databases that may contain thousands of references.  Key features and limitations are:
+\noindent \mbib is a literature manager, with capabilities similar to \href{http://www.jabref.org}{\jabref}, but intended to better cope with large databases containing thousands of references.  Key features and limitations are:
 
 \begin{itemize}
 \item Import from and export to \bibtex  
@@ -59,7 +62,7 @@
 
 \item Data are stored in a \sqlite database.
 
-\item Developed and tested only on Linux, and will likely not work out of the box on other platforms. (Volunteers for porting it to other platforms are welcome.)
+\item Developed and tested only on Linux; will most likely not work out of the box on other platforms. (Volunteers for porting it to other platforms are welcome.)
 
 \end{itemize}
 
@@ -67,18 +70,29 @@
 
 \subsection{Motivation}
 
-I started writing \mbib after my previous literature manager (\texttt{bibus}) broke down because of growing incompatibilities with LibreOffice, wxPython etc. I tried using \jabref for a while, and while it's really pretty good in many ways, it bogs down once you have several thousand references in your database. (The same goes for Zotero and Mendeley.)
+I started writing \mbib after my previous literature manager (\texttt{bibus}) became unusable because of growing incompatibilities with LibreOffice, wxPython etc. I tried using \jabref for a while, and while it's really pretty good in many ways, it bogs down once you have several thousand references in your database. (The same goes for Zotero and Mendeley.)
 
+\medskip
+
+\noindent My main objectives for \mbib were 
+
+\begin{itemize}
+\item Keep all references in a single database
+\item Use a proper database engine for flexibility and performance
+\item Work seamlessly with both \LaTeX\ (my tool of choice) and \ooo (which I use when I have to). 
+\end{itemize}
+
+\noindent To date 2.5 of these 3 objectives have been met. Working with \ooo is possible but a little clunky and will hopefully improve in future versions. 
 
 %The database has a fairy simple structure that lends itself to direct querying and manipulation with SQL
 %
 %Therefore, starting the program does \emph{not} load the entire database into memory. 
 
-\subsection{Status}
+\subsection{Development status}
 
-At present, \mbib is alpha software. Incompatible changes will likely happen to the code and might happen to the database structure. However, in the latter case, I will provide a script for migrating the database to the new format (which I will have to do with my own database anyway). 
+At present, \mbib is alpha software, yet production-ready ;-) -- it has almost all the features I need, but incompatible changes will likely happen to the code and the configuration, and they might happen to the database structure also. However, in the latter case, I will provide a script for migrating the database to the new format (which I will have to do with my own database anyway). 
 
-The program was written primarily with my own needs in mind. I work in biochemistry and use PubMed as my main online literature source, and I have therefore given interaction with that database priority. People in other fields might miss tighter integration with other databases. I'm open to adding support for those, but likely won't do so unless prodded. Similarly, some other bits of functionality are tailored to my own personal preferences and may seem a little narrow or idiosyncratic to others. Let me know if you need or want to contribute enhancements. 
+The program was written primarily with my own needs in mind. I work in biochemistry and use PubMed as my main online literature source, and I have therefore given interaction with that database priority. People in other fields might miss tighter integration with other databases. I'm open to adding support for those, but likely won't do so unless prodded. Similarly, some other bits of functionality are tailored to my own personal preferences and may seem a little narrow or idiosyncratic to other users. Let me know if you need or want to contribute enhancements. 
 
 The code violates all manner of software engineering gospel. There are no unit tests, and I don't plan to add them; the doc strings are a bit spotty and not formatted for automatic conversion into API docs. That said, I will give an overview of the program structure below, which hopefully will help you find your way through the code. 
 
@@ -98,9 +112,9 @@ In order to run \mbib, you first need to install these programs and libraries:
 \item Bash
 \item Python3 
 \item \sqlite
-\item The \texttt{urwid} and \texttt{urwidtrees} libraries for Python3
+\item The \texttt{urwid}, \texttt{urwidtrees}, and \texttt{requests} libraries for Python3
 \item If you intend to use \mbib with \ooo, you also need the \texttt{PyUNO} bridge for Python3, as well as \jabref
-\item If you want to copy items to the X clipboard, you will need \texttt{xclip}
+\item If you want to copy items to the X clipboard, you will need \texttt{xsel}
 \item For viewing or emailing PDF files, \mbib relies on \texttt{xdg-open} and \texttt{xdg-email}
 % anything else?
 \end{itemize}
@@ -111,18 +125,18 @@ The \texttt{xdg-open} and \texttt{xdg-email} utilities may already be installed 
 
 \subsection{Installing \mbib}
 
-Just clone (or download and unzip) the repository and add the main directory (\mbib) to your bash \texttt{\$PATH}. 
+Clone (or download and unzip) the \texttt{git} repository. Add the main directory (\mbib) to your bash \texttt{\$PATH}. 
 
 \subsection{Configuration}
 
-The first program start will generate a configuration \ini file in your home directory. The available settings are explained in comments inside the file itself.%
+The first program start will generate a configuration \ini file in a default location. The available settings are explained in comments inside the file itself.%
 %
 \footnote{You can have multiple configuration files and select one on the command line. This is explained in section \dots}
 
 \section{Tutorial}
 \label{sec:tutorial}
 
-Here we give an overview of the general work flow. We assume that the default configuration settings are in effect. A complete reference section describing all program features and configuration options will be added later. 
+Here we give an overview of the general work flow. We assume that the default configuration settings are in effect. A reference section describing all program features and configuration options will follow later. 
 
 \subsection{Starting the program}
 
@@ -135,7 +149,7 @@ mpalmer@rehakles:~$ mbib.sh
 \noindent After the first start, the expected output should be 
 
 \begin{verbatim}
-Config file /home/mpalmer/.mbib.ini not found!
+Config file (...)/mbib/data/mbib.ini not found!
 Create default configuration file and proceed (1) or exit (2)?
 1) proceed
 2) exit
@@ -147,7 +161,7 @@ Create default configuration file and proceed (1) or exit (2)?
 \begin{verbatim}
 #? 1
 OK
-Database file /home/mpalmer/mbib.sqlite not found. Create? (y/n) 
+Database file (...)/mbib/data/mbib.sqlite not found. Create? (y/n) 
 \end{verbatim}
 
 \noindent Press \key{y} and the program should start. The interface should look like this:
@@ -162,26 +176,22 @@ Database file /home/mpalmer/mbib.sqlite not found. Create? (y/n)
 
 \subsection{Working with references}
 
-When \texttt{Harrit2009} is highlighted, press \key{Enter} (or use a double mouse click), and you should see this context menu:
+When \texttt{Harrit2009} is highlighted, press \key{Enter} (or use a double mouse click), and you should see this context menu that presents all operations available for a single reference:
 
 \screenshot{reference-menu}
 
-\noindent Navigate the menu using \arrowup, \arrowdown, and select an item with \key{Enter}, or alternatively use the indicated shortcut keys or a single mouse click. If we select \texttt{Show details}, the \texttt{View reference} dialog comes up:
+\noindent Navigate the menu using \arrowup, \arrowdown and select an item with \key{Enter}, or alternatively use the indicated shortcut keys or a single mouse click. If we select \texttt{Show details}, the \texttt{View reference} dialog comes up:
 
 \screenshot{refview}
 
-\noindent Use the \arrowup/\arrowdown keys again to scroll through this dialog.  The abstract is at the bottom. Above it, there are up to three fields that are hyperlinks. The one currently in focus is highlighted in blue; you can activate it by pressing \key{Enter}) or again using the mouse, which will open a browser window and take you to the corresponding URL. 
+\noindent Use the \arrowup/\arrowdown keys again to scroll through this dialog.  The abstract is at the bottom. Above it, there are three fields that are hyperlinks. The one currently in focus is highlighted in blue; you can activate it by pressing \key{Enter} or again using the mouse, which will open a browser window and take you to the corresponding URL. 
 
 Press \texttt{Esc} to close the dialog, and then \key{Enter} to reopen the menu. This time, choose \texttt{Edit details}. The dialog will look similar, but now the content of all fields is editable, and fields that are currently empty are displayed as well. Make some changes---for example, add a comment: ``That stuff they found in the dust must of been paint peeled off from them box cutters.'' Press \texttt{Tab} to switch to the buttons at the bottom; use the left and right arrow keys to select ``Cancel'' or ``OK'', and \key{Enter} to confirm or abort the edit.  
 
 \subsection{Moving references around}
 \label{sec:moving}
 
-You might be disturbed by the scientific evidence that demonstrates the WTC towers were rigged with explosives and therefore want to delete this reference.%
-%
-\footnote{I would, however, suggest that you give it a look; it is a very solid paper, and as scientists we should go wherever the evidence leads us.}
-%
-Bring up the menu again and press \texttt{d} to delete the reference from this one folder, or \texttt{r} to also delete any copies residing in other folders (which in this case don't exist). After confirmation, the reference now shows up in the Trash folder:
+The paper we are looking at presents clear scientific evidence demonstrating that the WTC towers were rigged with explosives. This notion might disturb you, and you might therefore want to delete this reference. To do so, bring up the menu again and press \texttt{d} to delete the reference from this one folder, or \texttt{r} to also delete any copies residing in other folders (which in this case don't exist). After confirmation, the reference now shows up in the Trash folder:
 
 \screenshot{harrit-trash}
 
@@ -193,9 +203,9 @@ Bring up the menu again and press \texttt{d} to delete the reference from this o
 
 \screenshot{harrit-recycled}
 
-\noindent Let's assume that you plan to look at this paper some other time, and you want to collect such references in a separate folder. Navigate to the ``general interest'' folder and activate its menu (\key{Enter} or mouse double-click), then activate the option ``Add sub-folder'':%
+\noindent Let's assume that you plan to look at this paper some other time, and you want to collect references for later study in a separate folder. Navigate to the ``general interest'' folder and activate its menu (\key{Enter} or mouse double-click), then activate the option ``Add sub-folder'':%
 %
-\footnote{The folder context menu is quite long. In these screenshots, which use a small window, some items at the bottom are hidden. If such is case on your screen also, use the \arrowdown key to scroll them into view.}
+\footnote{The folder context menu is quite long. In these screen shots, which show a small window, some items at the bottom are hidden. If such should be the case on your screen also, use the \arrowdown key to scroll them into view.}
 
 \screenshot{folder-menu}
 
@@ -211,15 +221,20 @@ Bring up the menu again and press \texttt{d} to delete the reference from this o
 
 Note that you can select more than one reference at a time; all of them will be copied or moved to a given destination. You can also select and then move or copy entire folders. As a practical exercise, create a folder named ``test'' directly below ``References''. Navigate back to ``general interest'' and select this folder with the space bar. Go back to ``test'', open its menu and select ``Copy selected items here''. 
 
-You will now have cloned the entire folder with sub-folders and references. If you would rather have all those copied references directly underneath ``test'', without any intermediate sub-folders, open the menu for ``test'' again and select ``Flatten folder.'' This will give you the following result:
+You will now have cloned the entire folder with all of its sub-folders and references. If you would rather have all the copied references directly underneath ``test'', without any sub-folders in between, open the menu for the ``test'' folder again and select ``Flatten folder.'' This will give you the following result:
 
 \screenshot{flatten-folder}
 
-\noindent You will notice that the references in both ``test'' and ``general interest'' are highlighted in blue. This indicates that they are, by virtue of being contained in a selected folder somewhere in the tree (in this case the ``general interest'' folder), part of the currently active selection.%
+\noindent You will notice that, while the ``general interest'' folder is selected, the references in both ``test'' and ``general interest'' are shown in blue. If a reference appears in this shade, it indicates that \emph{this or another instance} is contained in a selected folder \emph{somewhere} in the tree---in this case, the ``general interest'' folder---and thus part of the currently active selection.%
 %
 \footnote{To be explicit about it: multiple instances of the same reference in different folders point to the same single instance of the reference in the database; this means that changes made to any instance will be shared by all others. That is, after all, what relational databases are good for.}
 %
 Deselecting ``general interest'' by hitting \key{Space} on it again will also deselect the references. 
+
+\subsection{More on selections}
+
+
+
 
 \subsection{Importing references}
 
@@ -229,7 +244,7 @@ References can be imported using PubMed identifiers, DOI identifiers, and \bibte
 blue-native[ti] anal-biochem[so]
 \end{verbatim}
 
-This will give you (at the time of this writing) 16 results. Choose the ``PMID List'' option from the page's display format control to see the identifiers for these papers. Use your mouse to select some or all of them. 
+\noindent This will give you (at the time of this writing) 16 results. Choose the ``PMID List'' option from the page's display format control to see the identifiers for these papers. Use your mouse to select some or all of them. 
 
 In \mbib, create a new sub-folder ``blue-native'' within ``biochemistry''. Open its menu and choose ``Import references from PubMed''. Hold down the Shift key and middle-click your mouse%
 %
@@ -261,7 +276,12 @@ Aside from exporting part or all of the \mbib database to \bibtex from an intera
 
 \subsubsection{Export the references listed in the \texttt{.aux} file}
 
-You can generate an up-to-date \bibtex file on the fly by letting \mbib parse the \texttt{.aux} file of your document. Assume that in \texttt{mydocument.tex} you have declared ~\bibliography{references}~. Then, after you have latexed your document, but \emph{before} you run \bibtex, you can run the following command to create \texttt{references.bib}:
+You can generate an up-to-date \bibtex file that contains all cited references (and only these%
+%
+\footnote{The only trick that won't work is \texttt{\textbackslash nocite\{*\}}, which is supposed to include all entries listed in the bibliography file. The best way to accommodate \texttt{\textbackslash nocite\{*\}} would be to keep all references you do want to list within a single folder inside \mbib and then to sync this folder on demand---see next section.}%
+%
+) on the fly by letting \mbib parse the \texttt{.aux} file of your document. Assume that in \texttt{mydocument.tex} you have declared ~\bibliography{myproject}~, which instructs \bibtex to use a file named \texttt{myproject.bib}. Then, after latexing your document, but \emph{before} running \bibtex, you can run the following command to create or update
+\texttt{myproject.bib}:
 
 \begin{verbatim}
 mpalmer@rehakles:~$ mbib.sh -b auxexport -t mydocument.aux
@@ -279,7 +299,11 @@ mpalmer@rehakles:~$ bibtex mydocument.aux
 mpalmer@rehakles:~$ mbib.sh -b auxbibtex -t mydocument.aux
 \end{verbatim}
 
-\noindent If you include this line in your build process, \bibtex will always transparently access the current state of your database. Thanks to \sqlite, this is fast enough even with large databases and numbers of citations. 
+\noindent If you include this line in your build process, \bibtex will always transparently access the current state of your database.%
+%
+\footnote{\mbib makes no attempt to determine if your \texttt{.bib} file is up to date (as this would require looking at all files that you \texttt{\textbackslash include} or \texttt{\textbackslash input}) and just overwrites the \texttt{.bib} file every time.}
+% 
+Thanks to \sqlite, this is easily fast enough even with large databases and numbers of citations, and it is how I use \mbib myself with \LaTeX. 
 
 \subsubsection{Syncing the \mbib database to a \bibtex file}
 
@@ -310,32 +334,57 @@ mpalmer@rehakles:~$ mbib.sh -b sync -t myproject.bib -f "my project"
 
 \end{itemize}
 
-\noindent The last point means that, regardless of file size, it costs very little to run this command routinely during document compilation. Therefore, this is another viable option to ensure that your document gets compiled against the current state of the \mbib database.%
+\noindent The last point means that, regardless of file size, it costs very little to run this command routinely during document compilation. Therefore, this is another method to ensure that your document gets compiled against the current state of the \mbib database.%
 %
-\footnote{Of course, if you do the full database dump, \bibtex will have to scan through a very large \texttt{.bib} file. While \bibtex itself is very fast even with large files, other tools like \texttt{biber} reportedly can be noticeably slower.}
+\footnote{Of course, if you do the full database dump, \bibtex may have to scan through a very large \texttt{.bib} file. While \bibtex itself is very fast even with large files, other tools like \texttt{biber} reportedly can be noticeably slower.}
 
 \subsection{Searching and filtering}
+\label{sec-searching}
 
 Coming back to the interactive interface, one important task we have not yet touched upon is searching for references. Navigate to the ``Search'' folder, bring up its context menu, and select ``New search''. This will bring up an empty search mask. Into the \texttt{abstract} field, type ``synthesis'', and hit \texttt{OK}. You should now see the following screen:
 
 \screenshot{search-results}
 
-The search results have been appended to the ``Search'' folder. You can work with them the usual way---edit them, select, copy, and move them. You cannot delete them individually, because it would be inconsequential, as they are merely copies of references stored elsewhere. However, you can use ``Delete from all folders'', in which case they will show up in the Trash. 
+\noindent The search results have been appended to the ``Search'' folder. You can work with them the usual way---edit them, select, copy, and move them. You cannot delete them individually, because it would be inconsequential, as they are merely copies of instances stored elsewhere. However, you can use ``Delete from all folders'', in which case those other instances will be deleted also, and the references will then show up in the Trash. 
 
-\noindent If you bring up the details view for either record in the Search Folder, (using \key{F2}), you will see an ``also in'' entry that is a hyperlink. Following it will take you to the directory in which this record resides. 
+If you press \key{F2} to bring up the details view for either reference in the Search Folder, you will see an ``also in''
+%
+\label{pg-also-in}%
+%
+entry that is a hyperlink. Following it will take you to the directory in which this record resides. 
 
-You can modify your search by selecting ``Edit last search'' from the ``Search'' folder's context menu. If you fill in multiple fields at the same time, all constraints will be applied at the same time. You can also apply multiple constraints to a single field using boolean operators. For example, typing the phrase: ~respiratory || cytochrome && PAGE~ into the ``abstract'' field of the search mask will look for records that contain the words ``respiratory'' or ``cytochrome'', as well as ``PAGE'' in the abstract. We note the following points:
+\subsubsection{Multiple search terms}
+
+You can modify your search by selecting ``Edit last search'' from the ``Search'' folder's context menu. If you fill in multiple fields at the same time, all constraints will be applied in conjunction (``and''). You can also apply multiple constraints to a single field using boolean operators. For example, typing the phrase: ~respiratory || cytochrome && PAGE~ into the ``abstract'' field of the search mask will look for records that contain the words ``respiratory'' or ``cytochrome'', as well as ``PAGE'' in the abstract. Note that
 
 \begin{itemize}
-\item ~||~ and ~&&~ represent the boolean \texttt{or} and \texttt{and} operators.
-\item ~||~ takes precedence over (binds more strongly than) ~&&~. This deviates from convention in mathematics, but I find it more useful; in my experience, it effectively does away with the need for using brackets (which \mbib doesn't support at this time). You can, however, change it in the \ini file, if you value mathematical purity over practicality.
+\item ~||~ and ~&&~ represent the boolean \texttt{or} and \texttt{and} operators, respectively.
+\item ~||~ takes precedence over (binds more strongly than) ~&&~. While this deviates from convention in mathematics, I find it more useful in practice; in my experience, it effectively does away with the need for using brackets (which \mbib anyway doesn't support at this time). You can, however, change the precedence in the \ini file if you wish.
 \end{itemize}
 
-\noindent You can search only for references, not folders. You can, however, filter folders by name. Press \key{F9} to enter a word or phrase to search for. Any folder whose name contains the entered phrase, as well as its sub-folders, will be displayed, while all other regular folders (those below ``References'') will be hidden. Press \key{F10} to revert to the full display. 
+\subsubsection{Finding folders}
+
+There is no proper search facility for folders. However, there are two aids for finding your way through the brushwork:
+
+\begin{itemize}
+\item You can filter folders by name. Press \key{F9} to enter a word or phrase to search for. Any folder whose name contains the entered phrase, as well as its sub-folders, will be displayed, while all other regular folders (those below ``References'') will be hidden. Press \key{F10} to revert to the full display. 
+
+\item You can also hide all references from view, displaying only the folders, using \key{F8}. (If you do so, folders that contain only references but no sub-folders will be displayed without the \texttt{+/-} expansion marker before their names.) In this decluttered view, navigation between folders can be much faster. Press \key{F8} again to revert to the full display. 
+\end{itemize}
+
+\noindent Finally, if you remember neither the folder's name nor its location, it may be useful to search for a pertinent reference instead, and then follow the ``Also in'' link to its location in the tree (see section \ref{sec-searching}, page \pageref{pg-also-in}). 
 
 \subsection{Viewing PDF files}
 
-Well, why wouldn't I include a practical exercise here. 
+If you select ``Show PDF file'' from a reference's context menu, \mbib will look for a PDF file whose name matches its \bibtex key; e.g.\ the PDF for the record \texttt{Harrit2009} should be named \texttt{Harrit2009.pdf}. Furthermore, by default, \mbib looks for PDF files only below the \texttt{data/pdf/} directory that itself resides in the \mbib installation directory.%
+%
+\footnote{If you don't want to move your PDF files there, you can change the path in the \ini file, or you can create symlinks to your actual storage locations inside \texttt{data/pdf}.}
+
+If \mbib fails to find the requested file in the preconfigured directory, it can use the \texttt{locate} program%
+%
+\footnote{On Debian, \texttt{locate} resides in the package of the same name. It requires the \texttt{updatedb} command to be run periodically in order to catch up with added or deleted files on your system.}
+%
+to find it elsewhere. This is disabled by default, but you can enable it in the \ini file (change option \texttt{pdf\_locate = false} to \texttt{true}). This may be convenient if you prefer to store your PDF files not in a centralized location but closer to the projects and manuscripts you may be working on. 
 
 \subsection{Multiple databases}
 
@@ -375,7 +424,7 @@ The program runs inside a console window. Assuming you have put a start-up scrip
 
 \section{Reference} 
 
-This section will describe the functions, configuration, and code structure. 
+This section will---some day, far, far into the future---describe everything, including configuration and code structure. 
 
 \section{Some gotchas}
 

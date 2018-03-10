@@ -38,7 +38,7 @@ class Trashcan(object):
         refs_deleted = refs_before - self.item_count('refs')
         refs_suffix = '' if refs_deleted == 1 else 's'
 
-        hub.app.set_status('Deleted %s reference%s' % (refs_deleted, refs_suffix))
+        hub.set_status_bar('Deleted %s reference%s' % (refs_deleted, refs_suffix))
 
 
     def delete_node(self, node=None):
@@ -98,7 +98,7 @@ class Trashcan(object):
         else:
             rs = ""
 
-        hub.app.set_status('Deleted %s%s%s' % (fs, joiner, rs))
+        hub.set_status_bar('Deleted %s%s%s' % (fs, joiner, rs))
 
 
     def _delete_other_instances(self, ref_ids, branch_ids):
@@ -169,7 +169,7 @@ class Trashcan(object):
         hub.coredb.clear_cache()
         hub.tree.refresh()
 
-        hub.app.set_status('Moved one reference to trash')
+        hub.set_status_bar('Moved one reference to trash')
 
 
     def recycle_trash(self):
@@ -195,7 +195,7 @@ class Trashcan(object):
         refs_recycled = self.item_count('reflink') - refs_before
         refs_suffix = '' if refs_recycled == 1 else 's'
 
-        hub.app.set_status('Recycled %s reference%s' % (refs_recycled, refs_suffix))
+        hub.set_status_bar('Recycled %s reference%s' % (refs_recycled, refs_suffix))
 
 
     def _empty_folder(self, folder_id):
@@ -220,7 +220,7 @@ class Trashcan(object):
 
         if refs_deleted > 0:
             refs_suffix = '' if refs_deleted == 1 else 's'
-            hub.app.set_status('Deleted %s reference%s' % (refs_deleted, refs_suffix))
+            hub.set_status_bar('Deleted %s reference%s' % (refs_deleted, refs_suffix))
 
 
     def empty_recycled(self):

@@ -10,7 +10,7 @@ import re, string, pprint, os, traceback, textwrap
 from pubmed_retrieval import PubmedImporter, PubmedError
 from tigkas_bibtexparser import Parser as BibtexParser
 from hub import hub, RefdbError, IntegrityError
-from html_formatter import OlFormatter
+from html_formatter import OlFormatter, DlFormatter
 from urwidtools import dialog
 from AsciiDammit3 import asciiDammit
 from urllib.request import Request, urlopen
@@ -88,7 +88,7 @@ class Imex(object):
         refs_imported = self.item_count('refs') - self.ref_count_before
         suffix = '' if refs_imported == 1 else 's'
 
-        hub.app.set_status('Imported %s reference%s' % (refs_imported, suffix))
+        hub.set_status_bar('Imported %s reference%s' % (refs_imported, suffix))
 
 
     def _file_or_text(self, raw_info):
@@ -97,7 +97,7 @@ class Imex(object):
         '''
         try:
             text = open(raw_info).read()
-        except FileNotFoundError:
+        except (FileNotFoundError, OSError): # OSError can happen on long file names
             text = raw_info
         return text
 
@@ -112,7 +112,7 @@ class Imex(object):
         '''
         raw_ids = self._file_or_text(raw_info)
 
-        progress_bar = dialog.ProgressBar()
+        progress_bar = hub.progress_bar(len(raw_ids))
         progress_bar.set_title("importing from Pubmed")
         progress_bar.show()
 
@@ -156,7 +156,7 @@ class Imex(object):
 
         # OK doke, we have at least one valid record. Now what? Just construct
         # a new progress bar and invoke the common backend.
-        progress_bar = dialog.ProgressBar()
+        progress_bar = hub.progress_bar()
         progress_bar.show()
         self.ref_count_before = self.item_count('refs')
         self._import_records(node, records, progress_bar)
@@ -352,7 +352,11 @@ class Imex(object):
         - else, we export the current selection.
         '''
         if node is not None:
-            records = [self.get_ref_dict(node)]
+            if hub.is_ref(node):
+                records = [self.get_ref_dict(node)]
+            else:
+                folder_id = node[1]
+                branches, records = self.get_nodes_below([folder_id])
 
         elif folder_ids is not None:
             branches, records = self.get_nodes_below(folder_ids)
@@ -381,7 +385,7 @@ class Imex(object):
         else:
             # hub.show_info("File %s written" % file_name)
             if not batch:
-                hub.app.set_status("Output sent to %s" % rv)
+                hub.set_status_bar("Output sent to %s" % rv)
 
 
     def export_bibtex(self, node=None, folder_ids=None, ref_keys=None, file_name=None, batch=False):
@@ -392,28 +396,15 @@ class Imex(object):
         records = self.get_export_records(node=node, folder_ids=folder_ids, ref_keys=ref_keys)
         output = []
 
-        if not batch:
-            progress_bar = dialog.ProgressBar()
-            progress_bar.set_title("exporting to BibTex")
-            progress_bar.show()
-            progress_bar.set_completion(0)
-
-        l = len(records)
-        completion = 0
+        progress_bar = hub.progress_bar(len(records), title="exporting to BibTex", interval=10)
+        progress_bar.show()
 
         for i, record in enumerate(records):
             output.append(self.format_bibtex(record))
-            p = round(100.0 * i / l)
-            if p - completion > 10:
-                completion += 10
-                if not batch:
-                    progress_bar.set_completion(completion)
+            progress_bar.update(i+1)
 
         output = '\n\n'.join(output)
-
         self.write_export_records(output, file_name, batch)
-        if not batch:
-            progress_bar.set_completion(100)
 
 
     def export_html(self, node=None, file_name=None, batch=False):
@@ -422,7 +413,19 @@ class Imex(object):
         accepting nodelist rather than a single node also.
         '''
         records = self.get_export_records(node=node)
-        output = OlFormatter(records)()
+        fmt = config['html']['list_format']
+        sort_key = config['html']['sort_key']
+        reverse = config['html'].getboolean('sort_descending')
+
+        if fmt == 'ol':
+            formatter = OlFormatter
+        elif fmt == 'dl':
+            formatter = DlFormatter
+        else:
+            hub.show_error("Unknown html format '%s'" % fmt)
+            return
+
+        output = formatter(records, sort_key=sort_key, reverse_sort=reverse)()
         self.write_export_records(output, file_name, batch)
 
 
@@ -442,18 +445,17 @@ class Imex(object):
         why not - let's just split across whitespace.
         '''
         doi = self._file_or_text(raw_info)
+        dois = doi.split()
+        l = len(dois)
 
-        progress_bar = dialog.ProgressBar()
-        progress_bar.set_title("fetching bibtex from doi.org")
+        progress_bar = hub.progress_bar(l, title="fetching %s record(s) from doi.org" % l)
         progress_bar.show()
 
-        dois = doi.split()
         records = []
         failed_dois = []
 
         for i, doi in enumerate(dois):
-            progress = (i+0.5) / len(dois)
-            progress_bar.set_completion(progress)
+            progress_bar.update(i+1)
 
             try:
                 bibtex = self._fetch_bibtex_for_doi(doi)

@@ -184,7 +184,7 @@ class LibreOffice(object):
 
         self.insert_ref(adapted)
         if status:
-            hub.app.set_status('cited %s' % adapted['Identifier'])
+            hub.set_status_bar('cited %s' % adapted['Identifier'])
 
 
     def cite_by_key(self, bibtexkey):
@@ -226,7 +226,7 @@ class LibreOffice(object):
             self.oo_cite(fake_node, status=False)
 
         suffix = "" if len(seen) == 1 else "s"
-        hub.app.set_status('cited %s reference%s' % (len(seen), suffix))
+        hub.set_status_bar('cited %s reference%s' % (len(seen), suffix))
 
 
 _export = '''

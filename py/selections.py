@@ -4,7 +4,7 @@ implement selecting references and moving them around.
 import os
 from hub import hub, RefdbError, IntegrityError
 from config import config
-from utils import xclip
+from utils import xsel
 
 
 class Selections(object):
@@ -441,7 +441,7 @@ class Selections(object):
 
     def get_selected_bibtexkeys(self):
         '''
-        needed by latex push operations and xclip
+        needed by latex push operations and xsel
         '''
         data = self.get_selected_with_keys()
 
@@ -453,38 +453,34 @@ class Selections(object):
         return sorted(keys)
 
 
-    def ref_xclip(self):
+    def ref_xsel(self):
         '''
         copy key of reference in current node to clipboard
         '''
         key = self.bibtexkey_for_node()
-        xclip(key)
+        xsel(key)
 
 
-    def xclip_selected(self):
+    def xsel_selected(self):
         '''
         copy bibtexkeys to clip board. Maybe one day we can generalize this to
         copy other parts also.
         '''
         data = self.get_selected_bibtexkeys()
         if len(data):
-            xclip(','.join(data))
+            xsel(','.join(data))
 
 
-    def mail_selected(self):
+    def _mail_references(self, ref_ids):
         '''
-        send pdf files for all selected references, as far as available
+        shared back-end for mailing selected or current references
         '''
-        # hub.app.set_status('locating PDF files for email')
-
-        ref_ids = [s[0] for s in self.get_selected_refs()]
         stmt = "select bibtexkey from refs where ref_id in (%s)"
         keys = self._db.execute_qmarks(stmt, [list(ref_ids)]).fetchvalues()
 
         # I guess we want to keep track of which PDF files were actually found.
         # so, we don't just filter
         paths = [(key, self.pdf_filepath(key)) for key in keys]
-        # print(list(paths)) that looks good.
 
         attach_list = []
         missing_list = []
@@ -499,7 +495,7 @@ class Selections(object):
             hub.show_errors("No PDF files found for selected reference(s)")
             return
 
-        # hub.app.set_status('composing email') does not show. Need to understand this some time.
+        hub.set_status_bar('composing email')
 
         cmd = ["xdg-email"]
         cmd.append('--subject "%s"' % config['email'].get('subject', 'PDF files'))
@@ -515,6 +511,27 @@ class Selections(object):
 
         cmd = ' '.join(cmd)
         os.system("%s > /dev/null 2> /dev/null" % cmd)
+        hub.set_status_bar('')
+
+
+    def mail_selected(self):
+        '''
+        send pdf files for all selected references, as far as available
+        '''
+        # hub.set_status_bar('locating PDF files for email')
+        ref_ids = [s[0] for s in self.get_selected_refs()]
+        self._mail_references(refids)
+
+
+    def mail_current(self, node=None):
+        '''
+        mail currently highlighted reference
+        '''
+        if node is None:    # invocation from menu will trigger this case
+            node = hub.tree.focus_element()
+
+        assert hub.is_ref(node)
+        self._mail_references([node[1]])
 
 
 _export = '''
@@ -526,12 +543,13 @@ _export = '''
           get_selected_bibtexkeys
           get_selected_refs
           get_selected_refs_full
+          mail_current
           mail_selected
           move_selected
-          ref_xclip
+          ref_xsel
           select_refs
           toggle_select
-          xclip_selected
+          xsel_selected
           '''
 
 hub.register_many(_export.split(), Selections())

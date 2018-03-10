@@ -45,7 +45,7 @@ class PubmedImporter(object):
     bibtex_re = re.compile('|'.join(re.escape(str(key)) for key in sorted(list(bibtex_conv.keys()), \
                                                                              key = lambda item: -len(item))))
 
-    def __init__(self, raw_pmids, progress_bar=None):
+    def __init__(self, raw_pmids, progress_bar):
         self.pmid_list = [_f for _f in self.pmid_split.split(raw_pmids) if _f]
         self.progress_bar = progress_bar
         self.progress = 0
@@ -170,14 +170,12 @@ class PubmedImporter(object):
         '''
         from lxml import etree      # a heavy import
 
-        if self.progress_bar:
-            self.progress_bar.set_title("Fetching %s records" % len(self.pmid_list))
+        self.progress_bar.set_title("Fetching %s records" % len(self.pmid_list))
 
         webfile = self.fetch()
 
-        if self.progress_bar:
-            self.progress_bar.set_title('Parsing records')
-            self.progress_bar.set_completion(20)
+        self.progress_bar.set_title('Parsing records')
+        self.progress_bar.set_completion(20)
 
         root = etree.parse(webfile)
         articles = root.findall('PubmedArticle')

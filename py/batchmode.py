@@ -2,7 +2,7 @@
 implement batch processing tasks
 '''
 
-from config import config
+from config import config, expanded_path
 import zipfile, os, sys, re, tempfile, shutil, glob
 from collections import Counter
 
@@ -19,7 +19,7 @@ class Plumbing(object):
         '''
         retrieve db file name without importing hub
         '''
-        return os.path.realpath(os.getenv("mbib_db", None) or os.path.expanduser(config['paths']['dbfile']))
+        return os.path.realpath(os.getenv("mbib_db", None) or expanded_path('dbfile'))
 
     def imex(self):
         if self._imex is None:
@@ -303,7 +303,7 @@ class SyncBibtex(Plumbing):
             else:
                 sys.exit("Database %s contains no folders named '%s'" % (db, folder_name))
 
-        self.hub().export_bibtex(folder_ids=id_list, file_name=bt, batch=True)
+        self.hub().export_bibtex(folder_ids=id_list, file_name=bt, batch=False)
 
 
 class AuxExport(Plumbing):

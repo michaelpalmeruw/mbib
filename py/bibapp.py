@@ -380,7 +380,7 @@ class DbTree(Tree):
         siblings = self._get_siblings(pos)
         try:
             myindex = siblings.index(pos)
-            #hub.app.set_status(str(siblings[0]))
+            #hub.set_status_bar(str(siblings[0]))
         except ValueError:
             return None
 

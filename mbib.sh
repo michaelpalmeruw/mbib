@@ -1,13 +1,12 @@
 #!/bin/bash
 
 # determine path to script and directory
-
 export mbib_sh="${BASH_SOURCE[0]}"
 export mbib_dir="$( cd "$( dirname "$mbib_sh" )" && pwd )"
 
 usage() { echo "Usage: $mbib_sh [-d <database file>] [-i <ini file>] [-b <batch operation>] [-f <folder>] [-t <target file>] [-c (clobber target files)]" 1>&2; exit 1; }
 
-# default ini file - can be overridden using -b option
+# default ini file - can be overridden using -i option
 export mbib_ini="${mbib_dir}/data/mbib.ini"
 
 while getopts ":d:i:b:t:f:hc" opt; do
@@ -52,7 +51,6 @@ if [ -z "$mbib_batch" ] && [ ! -z `pgrep -f mbib.py`  ]; then
     sleep 2
     exit 1
 fi
-
 
 default_ini="$mbib_dir/resources/default.ini"
 

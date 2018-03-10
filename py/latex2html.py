@@ -148,6 +148,7 @@ class GroupSplitter(object):
         atoms = []
         atom = []
 
+        i = -1
         for i, char in enumerate(rawarg):
 
             atom.append(char)
@@ -235,7 +236,6 @@ class Latex2Html(object):
         s = self.command_translate(s)
         length, groups = self.group_splitter(s)
         return ''.join(groups)
-
 
 
 if __name__ == '__main__':

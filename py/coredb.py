@@ -844,7 +844,7 @@ class RefDb(object):
             return
 
         # prevent subprocess from messing up the screen ...
-        hub.app.set_status('Opening PDF ...')
+        hub.set_status_bar('Opening PDF ...')
         fnull = open(os.devnull, 'w')
         subprocess.Popen(["xdg-open", path], stdout=fnull, stderr=fnull)
 

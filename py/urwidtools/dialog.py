@@ -198,9 +198,6 @@ class Dialog(urwid.WidgetWrap):
         read out edit widgets, checkboxes, and radiobuttons
         '''
         widgets = self.get_widgets()
-
-        # Just read out the data and pass the new ones and the old ones.
-        # Then, let refdb sort out what to do with them.
         new_data = {}
 
         for key, widget in list(widgets.items()):
@@ -540,32 +537,70 @@ class Menu(Dialog):
 
 class ProgressBar(Dialog):
     '''
-    just a dummy to see if we can actually get it to play ball.
+    higher level progress bar widget.
+
+    Over its lifetime, tasks are processed from 0 to target. The display
+    goes from initial_percent to final_percent, in steps of interval.
+    The client code calls .update to set a new completed value, whereupon
+    the widget updates itself if needed.
     '''
     outer_width = 50
     outer_height = 6
-    title = "working hard for a better future ..."
-    incomplete = 'body'
-    complete = 'focus'
-    initial_value = 0
-    done = 100
+    incomplete = 'body'    # palette color for incomplete fraction
+    complete = 'focus'     #    ...
+
+
+    def __init__(self,
+                 target,
+                 start = 0,
+                 title = "working hard for a better future ...",
+                 initial_percent = 0,
+                 final_percent = 100,
+                 interval = 10,
+                 **kw):
+
+        self.start = start
+        self.target = target
+        self.title = title
+
+        self.current_percent = self.initial_percent = initial_percent
+        self.final_percent = final_percent
+        self.interval = interval
+
+        self.__super.__init__(**kw)
+        self.set_title(self.title)
+
 
     def make_widgets(self):
-        self.set_widget('bar', urwid.ProgressBar(self.incomplete, self.complete, done=self.done))
+        self.set_widget('bar', urwid.ProgressBar(self.incomplete, self.complete, done=self.final_percent))
+
+
+    def update(self, newcount):
+        '''
+        calculate the current percentage that should be displayed
+        '''
+        completed_fraction = 1.0 * (newcount - self.start)/(self.target - self.start)
+        total_steps = (self.final_percent - self.initial_percent) / self.interval
+
+        completed_steps = int(completed_fraction * total_steps)
+        display_percent = self.initial_percent + completed_steps * self.interval
+
+        if display_percent > self.current_percent:
+            self.current_percent = display_percent
+            self.set_completion(self.current_percent)
 
     def set_completion(self, nr):
         bar = self.get_widgets()['bar']
         bar.set_completion(nr)
-        application.app.refresh_screen() # is this needed, or is sleeping enough? No, it's needed
-        #time.sleep(0.025)
+        application.app.refresh_screen() # is this needed, or is time.sleep enough? No, it's needed
 
-        if nr >= self.done:
+        if nr >= self.final_percent:
             time.sleep(0.25)
             self.dismiss()
 
     def show(self):
         self.__super.show()
-        self.set_completion(self.initial_value)
+        self.set_completion(self.initial_percent)
 
     def add_exit_buttons(self):
         pass

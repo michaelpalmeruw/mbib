@@ -8,6 +8,8 @@ from urwidtools import dialog
 
 from SqliteDB import SqliteDB, IntegrityError
 from config import config
+from utils import Null        # dummy class that we substitute for
+                              # dialog.ProgressBar  when in batch mode
 
 class RefdbError(Exception):
     pass
@@ -33,7 +35,7 @@ class hub(object):
         ('goto_trash', 'Go to Trash'),
         ('toggle_select', 'Select or deselect current folder or reference'),
         ('deselect_all', 'Deselect all folders and references'),
-        ('xclip_selected', 'Copy selected bibtex keys to X clipboard (requires xclip)'),
+        ('xsel_selected', 'Copy selected bibtex keys to X clipboard (requires xsel)'),
         ('bibtex_selected', 'Export selected references to BibTex'),
         ('html_selected', 'Export selected references to HTML'),
         ('cite_selected_latex', 'Cite selected references in TeXstudio or Texmaker'),
@@ -55,6 +57,7 @@ class hub(object):
     ]
 
     def __init__(self):
+        self.is_batch = True   #  default - gets switched in mbib.py if not in batch mode
         self._registry = {}
 
         # create key bindings from the config file
@@ -111,7 +114,28 @@ class hub(object):
 
     # some simple methods can be implemented right here; that doesn't hurt anything.
     def show_message(self, message):
-        dialog.MessageBox(message).show()
+        '''
+        we disable messages if we are in batch mode, so that
+        client code doesn't have to worry
+        '''
+        if not self.is_batch:
+            dialog.MessageBox(message).show()
+
+
+    def progress_bar(self, target, **kw):
+        '''
+        supply a proper progressbar when not it batchmode,
+        else a do-nothing class instance
+        '''
+        if self.is_batch:
+            return Null()
+        else:
+            return dialog.ProgressBar(target, **kw)
+
+
+    def set_status_bar(self, *a, **kw):
+        if not self.is_batch:
+            self.app.set_status(*a, **kw)
 
 
     def process_action(self, action):
@@ -145,7 +169,6 @@ class hub(object):
 
         self.process_action(action)
         return True
-
 
 hub = hub()
 
