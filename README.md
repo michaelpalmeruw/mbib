@@ -24,7 +24,7 @@ tutorial that covers most topics, but the reference part is missing.
 
 If you want to try it out, here is a brief Howto:
 
-- clone the repository
+- clone the repository, or download the zip archive and unzip it
 
 - make sure the mbib directory is in your bash $PATH, and the mbib.sh script inside it is executable
 

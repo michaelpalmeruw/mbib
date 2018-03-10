@@ -48,7 +48,7 @@ class Jabrefy(Plumbing):
     formatted for JabRef, so that JabRef can then format the bibliography.
     '''
     # some strings and regexes for mangling ODT files
-    citation_match_re = re.compile(r'\<text:bibliography-mark [^\>]*text:identifier=\"(\w+)\"[^\<]*\<\/text:bibliography-mark\>', re.MULTILINE)
+    citation_match_re = re.compile(r'\<text:bibliography-mark [^\>]*text:identifier=\"([\-\w]+)\"[^\<]*\<\/text:bibliography-mark\>', re.MULTILINE)
     citation_split_re = re.compile(r'(\<text:bibliography-mark [^\>]+\>[^\<]+\<\/text:bibliography-mark\>)', re.MULTILINE)
 
     empty_span_tags_re = re.compile(r'^\w*</text:span><text:span text:style-name="\w+">\w*$')

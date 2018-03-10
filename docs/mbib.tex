@@ -31,7 +31,7 @@
 \medskip\par
 \begin{center}
 %\includegraphics[width=1300px,#1]{/data/code/mbib/docs/screenshots/#2}
-\includegraphics{/data/code/mbib/docs/screenshots/#2}
+\includegraphics[#1]{/data/code/mbib/docs/screenshots/#2}
 \end{center}}
 
 \MakeShortVerb{\~}
@@ -338,6 +338,34 @@ mpalmer@rehakles:~$ mbib.sh -b sync -t myproject.bib -f "my project"
 %
 \footnote{Of course, if you do the full database dump, \bibtex may have to scan through a very large \texttt{.bib} file. While \bibtex itself is very fast even with large files, other tools like \texttt{biber} reportedly can be noticeably slower.}
 
+\subsection{Using \mbib with \ooo}
+
+External programs can communicate with \ooo via either sockets or TCP. \mbib supports both variants. Here, I will illustrate the set-up and program I use on my own laptop. I use LibreOffice, but this should work the same with OpenOffice.org, too. 
+
+To make LibreOffice listen to connection attempts, I have configured my (KDE) desktop menu entry for LibreOffice to use the command
+
+\begin{verbatim}
+libreoffice  --accept="pipe,name=abraxas;urp" %U
+\end{verbatim}
+
+The \texttt{\%U} argument variable will be substituted by KDE with a file name to open as applicable. If you start LibreOffice from a command line, use the actual file name instead, or omit it and then open a text file through the menu. 
+
+If you left the default settings inside the \ini file in force, then \mbib should now be able to insert citations into an open \ooo document. Select some references (by hitting \key{Space} on them). Bring up the selection context menu with \key{F5} and select ``Cite in OpenOffice.'' The selected references should now show up in the text document:
+
+\screenshot[clip,trim=0 0 3px 0]{cite-ooo}
+
+\noindent The above procedure inserts the citations into the document in a preliminary form; it does not generate the actual bibliography. Creating the latter takes a little extra work. First save the document to file as, say, \texttt{mydoc.odt}. Then, on the command line, invoke 
+
+\begin{verbatim}
+mpalmer@rehakles:~$ mbib.sh -b jabrefy -t mydoc.odt
+\end{verbatim}
+
+\noindent This will produce two files: \texttt{mydoc\_jr.odt} and \texttt{mydoc\_jr.bib}. The first will contain the same citation entries as the original \texttt{mydoc.odt}, but now formatted in a manner that \jabref understands. The second file contains the \bibtex items that match the citations in the \texttt{.odt} file. 
+
+Actually formatting the bibliography requires that you open \texttt{mydocs\_jr.odt} in \ooo, and \texttt{mydocs\_jr.bib} in \jabref. Connect from \jabref to \ooo, and hit the ``refresh'' button. This should generate the bibliography; use \jabref's facilities for defining and applying styles. 
+
+The process of inserting references and then formatting is, admittedly, a bit cumbersome. At least, it is ``round-trippable''---if you insert additional references into an already \jabref-formatted document and then reformat it, the new references will be properly merged with the old ones. 
+
 \subsection{Searching and filtering}
 \label{sec-searching}
 
@@ -359,7 +387,7 @@ You can modify your search by selecting ``Edit last search'' from the ``Search''
 
 \begin{itemize}
 \item ~||~ and ~&&~ represent the boolean \texttt{or} and \texttt{and} operators, respectively.
-\item ~||~ takes precedence over (binds more strongly than) ~&&~. While this deviates from convention in mathematics, I find it more useful in practice; in my experience, it effectively does away with the need for using brackets (which \mbib anyway doesn't support at this time). You can, however, change the precedence in the \ini file if you wish.
+\item ~||~ takes precedence over (joins more strongly than) ~&&~. While this deviates from convention in mathematics, I find it more useful in database queries; it pretty much does away with the need for using brackets at all (which \mbib anyway doesn't support at this time). You can, however, change the precedence in the \ini file if you wish.
 \end{itemize}
 
 \subsubsection{Finding folders}
@@ -367,24 +395,24 @@ You can modify your search by selecting ``Edit last search'' from the ``Search''
 There is no proper search facility for folders. However, there are two aids for finding your way through the brushwork:
 
 \begin{itemize}
-\item You can filter folders by name. Press \key{F9} to enter a word or phrase to search for. Any folder whose name contains the entered phrase, as well as its sub-folders, will be displayed, while all other regular folders (those below ``References'') will be hidden. Press \key{F10} to revert to the full display. 
+\item You can filter folders by name. Press \key{F9} to enter a word or phrase to search for. Any folder whose name contains the entered phrase, as well as its ancestors and descendants, will be displayed, while all other regular folders (those below ``References'') will be hidden. Press \key{F10} to revert to the full display. 
 
-\item You can also hide all references from view, displaying only the folders, using \key{F8}. (If you do so, folders that contain only references but no sub-folders will be displayed without the \texttt{+/-} expansion marker before their names.) In this decluttered view, navigation between folders can be much faster. Press \key{F8} again to revert to the full display. 
+\item You can also hide all references from view, displaying only the folders, using \key{F8}. (If you do so, folders that contain only references but no sub-folders will be displayed without the \texttt{+/-} expansion marker before their names.) This condensed view lets you explore the folder tree more speedily. Press \key{F8} again to revert to the full display. 
 \end{itemize}
 
-\noindent Finally, if you remember neither the folder's name nor its location, it may be useful to search for a pertinent reference instead, and then follow the ``Also in'' link to its location in the tree (see section \ref{sec-searching}, page \pageref{pg-also-in}). 
+\noindent Finally, if you remember neither the name nor the location of the folder you are looking for, it may be useful to search for a pertinent reference instead, display its details (\key{F2}), and then follow the ``Also in'' link to its location in the tree (see section \ref{sec-searching}, page \pageref{pg-also-in}). 
 
 \subsection{Viewing PDF files}
 
 If you select ``Show PDF file'' from a reference's context menu, \mbib will look for a PDF file whose name matches its \bibtex key; e.g.\ the PDF for the record \texttt{Harrit2009} should be named \texttt{Harrit2009.pdf}. Furthermore, by default, \mbib looks for PDF files only below the \texttt{data/pdf/} directory that itself resides in the \mbib installation directory.%
 %
-\footnote{If you don't want to move your PDF files there, you can change the path in the \ini file, or you can create symlinks to your actual storage locations inside \texttt{data/pdf}.}
+\footnote{If you don't want to move your PDF files there, you can change the path in the \ini file, or you can create symlinks from inside \texttt{data/pdf} to your actual storage locations.}
 
 If \mbib fails to find the requested file in the preconfigured directory, it can use the \texttt{locate} program%
 %
 \footnote{On Debian, \texttt{locate} resides in the package of the same name. It requires the \texttt{updatedb} command to be run periodically in order to catch up with added or deleted files on your system.}
 %
-to find it elsewhere. This is disabled by default, but you can enable it in the \ini file (change option \texttt{pdf\_locate = false} to \texttt{true}). This may be convenient if you prefer to store your PDF files not in a centralized location but closer to the projects and manuscripts you may be working on. 
+to find it elsewhere. This feature is disabled by default, but you can enable it in the \ini file (change option \texttt{pdf\_locate = false} to \texttt{true}). This may be convenient if you prefer to store your PDF files not in a single centralized location but closer to the various projects and manuscripts you may be working on. 
 
 \subsection{Multiple databases}
 
@@ -393,6 +421,8 @@ One of my key objectives with \mbib was to organize all my references within in 
 \begin{verbatim}
 mpalmer@rehakles:~$ mbib.sh -d my/wonderful/database.sqlite
 \end{verbatim}
+
+\noindent This also works in conjunction with the various other command line operations that were described above in this tutorial. 
 
 \begin{comment}
 \section{Running \mbib}
@@ -424,7 +454,7 @@ The program runs inside a console window. Assuming you have put a start-up scrip
 
 \section{Reference} 
 
-This section will---some day, far, far into the future---describe everything, including configuration and code structure. 
+This section will---some day, far, far into the future, maybe about the same time that the U.S.\ and Israeli governments finally come clean about 9/11---describe everything, including configuration and code structure. 
 
 \section{Some gotchas}
 
@@ -436,7 +466,11 @@ Here are some things to keep in mind.
 
 \item All changes to the data---imports, edits, deletions---are saved to the database immediately, and there is no undo function. (However, as discussed in section \ref{sec:moving}, deleted references can still be retrieved from the ``Trash'' folder.)
 
-\item \mbib On a related note: \mbib, by default, writes a backup version of the \sqlite file (with the appended extension \texttt{.bak}) next to the current database. (You can disable automatic backups in the \ini file.)  \emph{The backup file gets overwritten at program start if it deviates from the current database file.} Therefore, if you want to revert to the backup file, exit \mbib and then replace the current database file with the backup file \emph{before} restarting \mbib.
+\item On a related note: \mbib, by default, writes a backup version of the \sqlite file (with the appended extension \texttt{.bak}) next to the current database. (You can disable automatic backups in the \ini file.)  
+
+\emph{The backup file gets overwritten at program start if it deviates from the current database file.} 
+
+Therefore, if you want to revert to the backup file, exit \mbib and then replace the current database file with the backup file \emph{before} restarting \mbib.
 
 % \item Moving selected items from search results: the search folder is basically a simple folder in the database. So, if items in this folder are selected and moved, the copies in the permanent folder stay where they are. this is discussed in the tutorial.
 
@@ -444,7 +478,7 @@ Here are some things to keep in mind.
 
 \item All the special top-level folders are special and protected just inside \mbib, because specific operations are available and others excluded; in particular, they cannot be deleted, moved, or renamed. However, no such protective restrictions apply when working with the database using an \sqlite shell. 
 
-Generally speaking, it is a good idea to make a safety backup copy of the database file before performing major surgery in SQL. 
+Generally speaking, it is a good idea to make a backup copy of the database file and stash it away in a safe place before performing major surgery in SQL. 
 \end{itemize}
 
 

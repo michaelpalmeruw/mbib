@@ -22,7 +22,6 @@ import os, sys, uno
 from hub import hub, RefdbError, IntegrityError
 from config import config
 
-# we might want to weed these out a little.
 NoConnectException = uno.getClass("com.sun.star.connection.NoConnectException")
 RuntimeException = uno.getClass("com.sun.star.uno.RuntimeException")
 IllegalArgumentException = uno.getClass("com.sun.star.lang.IllegalArgumentException")
@@ -36,7 +35,6 @@ DIRECT_VALUE = uno.Enum("com.sun.star.beans.PropertyState","DIRECT_VALUE")
 
 class ConnectionError(Exception):
     pass
-
 
 class LibreOffice(object):
     '''
@@ -64,8 +62,10 @@ class LibreOffice(object):
         connection setup. This should normally be done only once, I guess,
         though it
         '''
-        if self.smgr is not None:
-            return
+        # if self.smgr is not None: return
+        # All this does is go belly up if LibreOffice is opened after mbib.
+        # speed penalty of reconnecting every time seems imperceptible -
+        # even with a large document. Maybe uno does caching already.
 
         localContext = uno.getComponentContext()
         resolver = localContext.ServiceManager.createInstanceWithContext(
@@ -134,13 +134,9 @@ class LibreOffice(object):
 
     def insert_ref(self, refdict):
         '''
-        we will first create a mockup object.
+        insert a single reference into the document
         '''
-        try:
-            self.get_document()
-        except ConnectionError:
-            hub.show_errors("No active Writer document found")
-            return
+        self.get_document()
 
         ref = self.model.createInstance("com.sun.star.text.TextField.Bibliography")
 
@@ -151,15 +147,6 @@ class LibreOffice(object):
         c.Text.insertTextContent(c, ref, True)
         self.smgr  # some script I found said I need to invoke some UNO object in order to make it stick
                    # not sure that is true. we can test later.
-
-
-    def strip_markup(self, value):
-        '''
-        remove crufty markup before inserting value. Actually, no - why
-        would we need this? We will simply assume that JabRef processing
-        is performed.
-        '''
-        return value
 
 
     def oo_cite(self, node=None, status=True):
@@ -180,9 +167,10 @@ class LibreOffice(object):
             if key in junk:
                 continue
             new_key = self.key_mapping.get(key, key.title())
-            adapted[new_key] = self.strip_markup(value)
+            adapted[new_key] = value
 
         self.insert_ref(adapted)
+
         if status:
             hub.set_status_bar('cited %s' % adapted['Identifier'])
 
@@ -203,7 +191,10 @@ class LibreOffice(object):
             hub.show_errors("reference '%s' not found" % bibtexkey)
             return
 
-        self.oo_cite(fake_node)
+        try:
+            self.oo_cite(fake_node)
+        except ConnectionError:
+            hub.show_errors("No active Writer document found")
 
 
     def cite_selected_oo(self):
@@ -223,7 +214,12 @@ class LibreOffice(object):
                 continue
             seen.add(ref_id)
             fake_node = (hub.REF, ref_id, branch_id)
-            self.oo_cite(fake_node, status=False)
+
+            try:
+                self.oo_cite(fake_node, status=False)
+            except ConnectionError:
+                hub.show_errors("No active Writer document found")
+                return
 
         suffix = "" if len(seen) == 1 else "s"
         hub.set_status_bar('cited %s reference%s' % (len(seen), suffix))
@@ -235,6 +231,7 @@ _export = '''
           cite_selected_oo
           '''
 
+#
 hub.register_many(_export.split(), LibreOffice())
 
 
