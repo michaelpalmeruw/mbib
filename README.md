@@ -1,8 +1,8 @@
 # mbib
 Bibliography manager for Linux, for use with both LaTeX and OpenOffice/Libreoffice
 
-Status: the code is uploaded and should work, but the documentation is very incomplete.
-I'm working on it and will update soon.
+Status: the code is reasonably complete and working. The documentation has a
+tutorial that covers most topics, but the reference part is missing.
 
 If you want to try it out now, here is a brief Howto:
 
