@@ -151,9 +151,9 @@ class Jabrefy(Plumbing):
         '''
         separate this from the unpacking and repacking. Return the modified string.
         '''
-        # first, fish out any jabref citation keys that might already have been inserted manually.
+        # first, fish out any jabref citation keys that might already have been
+        # inserted earlier.
         fragments = self.citation_split_re.split(content)
-        # print("fragments", len(fragments))
 
         jr_keys = self.existing_jr_keys_re.finditer(content)
 
@@ -176,6 +176,7 @@ class Jabrefy(Plumbing):
         # we no longer reference any style definition, so don't add one either
         #if not self.style_test_tag in header:
             #header = header.replace(self.style_end_tag, self.extra_style_tag + self.style_end_tag)
+
         rebuilt = [header]
         current_group = []
 
@@ -191,7 +192,8 @@ class Jabrefy(Plumbing):
             else:
                 current_group.append(citation)
 
-        # the last fragment can never be a citation, so we don't need any explicit termination cleanup
+        # the last fragment can never be a citation, so we don't
+        # need any explicit termination cleanup
         return len(fragments) - 1, "".join(rebuilt)
 
 
@@ -205,6 +207,8 @@ class Jabrefy(Plumbing):
 
         if infile_name is None:
             sys.exit('you must specify a target file name')
+        elif not os.path.exists(infile_name):
+            sys.exit('target file %s not found' % infile_name)
 
         trunk, ext = os.path.splitext(infile_name)
         outfile_name = "%s_jr%s" % (trunk, ext)
@@ -212,26 +216,22 @@ class Jabrefy(Plumbing):
         full_outfile_name = outfile_name # os.path.join(curdir, outfile_name)
         clobber = os.getenv('mbib_clobber', False)
 
-        if not clobber and os.path.exists(full_outfile_name) and \
-            (os.stat(infile_name).st_mtime <= os.stat(full_outfile_name).st_mtime) and \
-            (os.stat(db).st_mtime <= os.stat(full_outfile_name).st_mtime):
-            sys.exit("File %s is up to date - exiting" % full_outfile_name)
+        if os.path.exists(full_outfile_name):
+            if not clobber and \
+                (os.stat(infile_name).st_mtime <= os.stat(full_outfile_name).st_mtime) and \
+                (os.stat(db).st_mtime <= os.stat(full_outfile_name).st_mtime):
+                sys.exit("File %s is up to date - exiting" % full_outfile_name)
+            else:
+                os.remove(full_outfile_name)
 
         try:
             infile = zipfile.ZipFile(infile_name)
             content = infile.open('content.xml').read()
-        except FileNotFoundError:
-            sys.exit("file '%s' not found" % infile_name)
         except (KeyError, zipfile.BadZipFile):
             sys.exit("file '%s' has wrong type or is corrupt" % infile_name)
 
         # OK, at this stage, we have a valid input file.
-        try:
-            os.remove(full_outfile_name)
-        except FileNotFoundError:
-            pass
-
-        mydir = tempfile.TemporaryDirectory(prefix="mbib_") # ()
+        mydir = tempfile.TemporaryDirectory(prefix="mbib_")
         infile.extractall(mydir.name)
 
         curdir = os.path.realpath(os.getcwd())
@@ -247,8 +247,7 @@ class Jabrefy(Plumbing):
             print("wrote jabrefied file '%s'" % outfile_name)
 
         else:
-            print("No mbib citations found, therefore not writing jabrefied .odt file")
-            raise SystemExit
+            sys.exit("No mbib citations found, therefore not writing jabrefied .odt file")
 
         os.chdir(curdir)
         missing, records = self.get_cited_records()

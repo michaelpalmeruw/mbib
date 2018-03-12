@@ -1,6 +1,4 @@
 '''
-let's try to cobble together the bits and pieces here.
-
 Let's first try to insert something at the cursor position,
 because so far we don't.
 
@@ -18,7 +16,7 @@ Is it a good idea to throw this into one pot with the
 LaTeX editors? Fewer shortcuts, but the process IS kind
 of involved. I will give it a miss then.
 '''
-import os, sys, uno
+import os, sys, uno, pprint
 from hub import hub, RefdbError, IntegrityError
 from config import config
 
@@ -167,8 +165,9 @@ class LibreOffice(object):
             if key in junk:
                 continue
             new_key = self.key_mapping.get(key, key.title())
-            adapted[new_key] = value
+            adapted[new_key] = str(value)
 
+        pprint.pprint(adapted)
         self.insert_ref(adapted)
 
         if status:
@@ -245,7 +244,7 @@ if __name__ == '__main__':
         'Bibliography-Type'       : 'Article',
         'Journal'    : 'J Irrepr Res',
         'Volume'     : '42',
-        'Year'       : '1984',
+        'Date'       : '1984',
         'Title'      : 'Little Red Riding Rhodococcus',
         'URL'        : 'http://google.ca'
     }

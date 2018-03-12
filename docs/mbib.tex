@@ -14,11 +14,12 @@
 \usepackage[small]{titlesec}
 \setlength{\parindent}{2em}
 \usepackage{simplehref, vf-plaindoc, setspace}
-\setstretch{1.08}
+\setstretch{1.2}
+%\onehalfspacing
 
 \newcommand*{\mbib}{\texttt{mbib}\xspace}
 \newcommand*{\jabref}{\texttt{JabRef}\xspace}
-\newcommand*{\ooo}{\texttt{OOo}\xspace}
+\newcommand*{\loo}{\texttt{Libre\-/Open\-office}\xspace}
 \newcommand*{\bibtex}{\texttt{BibTex}\xspace}
 \newcommand*{\sqlite}{\texttt{SQLite}\xspace}
 \newcommand*{\ini}{\texttt{.mbib.ini}\xspace}
@@ -26,6 +27,7 @@
 \newcommand*{\key}[1]{\texttt{#1}\xspace}
 \newcommand*{\arrowdown}{\key{$\downarrow$}}
 \newcommand*{\arrowup}{\key{$\uparrow$}}
+\newcommand*{\arrowright}{\key{$\rightarrow$}}
 
 \newcommand{\screenshot}[2][]{%
 \medskip\par
@@ -51,18 +53,16 @@
 
 \item Import records from DOI and PubMed identifiers
 
-\item Push citations to \texttt{Texmaker}/\texttt{TexStudio}
+\item Push citations to \texttt{Texmaker}/\texttt{TexStudio} and \loo 
 
-\item Push citations to OpenOffice.org/LibreOffice (collectively referred to as ``\ooo'' below). Formatting of bibliographies in \ooo piggybacks on \jabref. Thus, you need to have \jabref installed in order to fully use \mbib with \ooo.
-
-\item Written in Python3.
+\item Written in Python3
 
 \item Console-based GUI, based on the \texttt{urwid} and
 \texttt{urwidtrees} Python libraries. 
 
-\item Data are stored in a \sqlite database.
+\item Data are stored in a \sqlite database
 
-\item Developed and tested only on Linux; will most likely not work out of the box on other platforms. (Volunteers for porting it to other platforms are welcome.)
+\item Developed and tested only on Linux; will most likely not work out of the box on other platforms (volunteers for porting it to other platforms are welcome)
 
 \end{itemize}
 
@@ -79,10 +79,12 @@ I started writing \mbib after my previous literature manager (\texttt{bibus}) be
 \begin{itemize}
 \item Keep all references in a single database
 \item Use a proper database engine for flexibility and performance
-\item Work seamlessly with both \LaTeX\ (my tool of choice) and \ooo (which I use when I have to). 
+\item Keep the database structure simple to allow direct querying and manipulation with SQL
+\item Work seamlessly with both \LaTeX\ (my tool of choice) and 
+\item \loo (which I use when I have to) 
 \end{itemize}
 
-\noindent To date 2.5 of these 3 objectives have been met. Working with \ooo is possible but a little clunky and will hopefully improve in future versions. 
+While I would like the interaction with \loo to be a little smoother, making it so would take substantial effort; otherwise, these objectives have been met.
 
 %The database has a fairy simple structure that lends itself to direct querying and manipulation with SQL
 %
@@ -90,7 +92,7 @@ I started writing \mbib after my previous literature manager (\texttt{bibus}) be
 
 \subsection{Development status}
 
-At present, \mbib is alpha software, yet production-ready ;-) -- it has almost all the features I need, but incompatible changes will likely happen to the code and the configuration, and they might happen to the database structure also. However, in the latter case, I will provide a script for migrating the database to the new format (which I will have to do with my own database anyway). 
+At present, \mbib is alpha software, yet production-ready ;-) -- it has almost all the features I need, but incompatible changes may still happen to the code, the configuration, and even the database structure. However, in the latter case, I will provide a script for migrating the database to the new format (which I will have to do with my own database anyway). 
 
 The program was written primarily with my own needs in mind. I work in biochemistry and use PubMed as my main online literature source, and I have therefore given interaction with that database priority. People in other fields might miss tighter integration with other databases. I'm open to adding support for those, but likely won't do so unless prodded. Similarly, some other bits of functionality are tailored to my own personal preferences and may seem a little narrow or idiosyncratic to other users. Let me know if you need or want to contribute enhancements. 
 
@@ -110,12 +112,18 @@ In order to run \mbib, you first need to install these programs and libraries:
 
 \begin{itemize}
 \item Bash
+
 \item Python3 
+
 \item \sqlite
+
 \item The \texttt{urwid}, \texttt{urwidtrees}, \texttt{lxml}, and \texttt{requests} libraries for Python3
-\item If you intend to use \mbib with \ooo, you also need the \texttt{PyUNO} bridge for Python3, as well as \jabref
+
+\item To use \mbib with \loo, you also need the \texttt{PyUNO} bridge for Python3. For advanced bibliography formatting in \loo, you will also need \jabref
+
 \item If you want to copy items to the X clipboard, you will need \texttt{xsel}
-\item For viewing or emailing PDF files, \mbib relies on \texttt{xdg-open} and \texttt{xdg-email}
+
+\item For viewing or emailing PDF files, you will need \texttt{xdg-open} and \texttt{xdg-email}
 % anything else?
 \end{itemize}
 
@@ -125,7 +133,7 @@ The \texttt{xdg-open} and \texttt{xdg-email} utilities may already be installed 
 
 \subsection{Installing \mbib}
 
-Clone (or download and unzip) the \texttt{git} repository. Add the main directory (\mbib) to your bash \texttt{\$PATH}. 
+Clone (or download and unzip) the \texttt{git} repository into a convenient location. Add the \mbib installation directory (\texttt{mbib-master}) to your bash \texttt{\$PATH}.
 
 \subsection{Configuration}
 
@@ -140,7 +148,7 @@ Here we give an overview of the general work flow. We assume that the default co
 
 \subsection{Starting the program}
 
-Assuming you have installed all prerequisites and added the \mbib directory to your shell's \texttt{\$PATH}, you should now be able to open a console window and run 
+Assuming you have installed all prerequisites and added the \mbib installation directory to your shell's \texttt{\$PATH}, you should now be able to open a console window and run 
 
 \begin{verbatim}
 mpalmer@rehakles:~$ mbib.sh
@@ -301,7 +309,7 @@ mpalmer@rehakles:~$ mbib.sh -b auxbibtex -t mydocument.aux
 
 \noindent If you include this line in your build process, \bibtex will always transparently access the current state of your database.%
 %
-\footnote{\mbib makes no attempt to determine if your \texttt{.bib} file is up to date (as this would require looking at all files that you \texttt{\textbackslash include} or \texttt{\textbackslash input}) and just overwrites the \texttt{.bib} file every time.}
+\footnote{\mbib makes no attempt to determine if your \texttt{.bib} file is up to date (as this would require looking at all files that your main document might \texttt{\textbackslash include} or \texttt{\textbackslash input}) and just overwrites the \texttt{.bib} file every time.}
 % 
 Thanks to \sqlite, this is easily fast enough even with large databases and numbers of citations, and it is how I use \mbib myself with \LaTeX. 
 
@@ -338,9 +346,9 @@ mpalmer@rehakles:~$ mbib.sh -b sync -t myproject.bib -f "my project"
 %
 \footnote{Of course, if you do the full database dump, \bibtex may have to scan through a very large \texttt{.bib} file. While \bibtex itself is very fast even with large files, other tools like \texttt{biber} reportedly can be noticeably slower.}
 
-\subsection{Using \mbib with \ooo}
+\subsection{Using \mbib with \loo}
 
-External programs can communicate with \ooo via either sockets or TCP. \mbib supports both variants. Here, I will illustrate the set-up and program I use on my own laptop. I use LibreOffice, but this should work the same with OpenOffice.org, too. 
+External programs can communicate with \loo via either sockets or TCP. \mbib supports both variants. Here, I will illustrate the set-up and program I use on my own laptop. I use LibreOffice, but this should work the same with OpenOffice, too. 
 
 To make LibreOffice listen to connection attempts, I have configured my (KDE) desktop menu entry for LibreOffice to use the command
 
@@ -350,28 +358,42 @@ libreoffice  --accept="pipe,name=abraxas;urp" %U
 
 The \texttt{\%U} argument variable will be substituted by KDE with a file name to open as applicable. If you start LibreOffice from a command line, use the actual file name instead, or omit it and then open a text file through the menu. 
 
-If you left the default settings inside the \ini file in force, then \mbib should now be able to insert citations into an open \ooo document. Select some references (by hitting \key{Space} on them). Bring up the selection context menu with \key{F5} and select ``Cite in OpenOffice.'' The selected references should now show up in the text document:
+If you left the default settings inside the \ini file in force, then \mbib should now be able to insert citations into an open \loo document. Select some references (by hitting \key{Space} on them). Bring up the selection context menu with \key{F5} and select ``Cite in OpenOffice.'' The selected references should now show up in the text document:
 
 \screenshot[clip,trim=0 0 3px 0]{cite-ooo}
 
-\noindent The above procedure inserts the citations into the document in a preliminary form; it does not generate the actual bibliography. Creating the latter takes a little extra work. First save the document to file as, say, \texttt{mydoc.odt}. Then, on the command line, invoke 
+\noindent The above procedure inserts the citations into the document in \loo{}'s own format, as if they had been selected from its own internal database. Accordingly, you can now create a bibliography using \loo{}'s menu `Insert \arrowright TOC and Index \arrowright TOC, Index or Bibliography,' and then update%
+%
+\footnote{To update the bibliography after inserting more citations, right-click on the bibliography heading and select `update index' from the menu.}
+%
+and format it using \loo's built-in functions. 
+
+While \loo{}'s own bibliography may be good enough for your needs, tweaking its appearance can be a bit limiting. As an alternative, you can use \jabref to generate and style your bibliography. To this end, you first have to change the inserted citations to a format that \jabref can understand. Assume that you have saved the document as \texttt{mydoc.odt}. Then, on the command line, invoke 
 
 \begin{verbatim}
 mpalmer@rehakles:~$ mbib.sh -b jabrefy -t mydoc.odt
 \end{verbatim}
 
-\noindent This will produce two files: \texttt{mydoc\_jr.odt} and \texttt{mydoc\_jr.bib}. The first will contain the same citation entries as the original \texttt{mydoc.odt}, but now formatted in a manner that \jabref understands. The second file contains the \bibtex items that match the citations in the \texttt{.odt} file. 
+\noindent This will produce two files: \texttt{mydoc\_jr.odt} and \texttt{mydoc\_jr.bib}. The first will contain the same citation entries as the original \texttt{mydoc.odt}, but now formatted for \jabref. The second file contains the \bibtex items that match the citations in the \texttt{.odt} file, exported from the \mbib database.  
 
-Actually formatting the bibliography requires that you open \texttt{mydocs\_jr.odt} in \ooo, and \texttt{mydocs\_jr.bib} in \jabref. Connect from \jabref to \ooo, and hit the ``refresh'' button. This should generate the bibliography; use \jabref's facilities for defining and applying styles. 
+Actually formatting the bibliography requires that you open \texttt{mydocs\_jr.odt} in \loo, and \texttt{mydocs\_jr.bib} in \jabref. Connect from \jabref to \loo (press the button with red circle in screen shot below), and refresh the document (button with blue circle). 
 
-The process of inserting references and then formatting is, admittedly, a bit cumbersome. At least, it is ``round-trippable''---if you insert additional references into an already \jabref-formatted document and then reformat it, the new references will be properly merged with the old ones. 
+\screenshot{jabref}
+
+\noindent This should generate the bibliography; you can then use \jabref's facilities for defining and applying styles. If you had previously created a bibliography in \loo directly, you will now have two bibliographies; get rid of the \loo one by right-clicking on its heading and select `delete index' from the context menu.
+
+While this process of formatting the bibliography by first running the \mbib batch command and then \jabref is a bit clunky. However, it really needs to be applied only once, when you have completed the document. Also note that \jabref{}-formatting is ``round-trippable''---you can insert additional references into an already \jabref-formatted document. When you again \texttt{-b jabrefy} it and then reformat it in \jabref, the newly inserted references will be properly merged with the old ones. 
+
+\subsection{Inserting citations into \LaTeX\ documents from within \mbib}
+
+So far, I have only figured out how to push keys from \mbib to Texmaker and TexStudio; the context menus for individual references and for selections (\key{F5}) contain a `Cite in LaTeX' item for this purpose. For other editors, the only option is to copy the keys to the X clipboard and then paste them. I'd be happy to add support for other editors if anyone can point me to the technical details on IPC for these.
 
 \subsection{Searching and filtering}
 \label{sec-searching}
 
-Coming back to the interactive interface, one important task we have not yet touched upon is searching for references. Navigate to the ``Search'' folder, bring up its context menu, and select ``New search''. This will bring up an empty search mask. Into the \texttt{abstract} field, type ``synthesis'', and hit \texttt{OK}. You should now see the following screen:
+One important task we have not yet touched upon is searching for references. Navigate to the ``Search'' folder, bring up its context menu, and select ``New search''. This will bring up an empty search mask. Into the \texttt{abstract} field, type ``synthesis'', and hit \texttt{OK}. You should now see the following screen:
 
-\screenshot{search-results}
+\screenshot[clip,trim=0 1.2in 0 0]{search-results}
 
 \noindent The search results have been appended to the ``Search'' folder. You can work with them the usual way---edit them, select, copy, and move them. You cannot delete them individually, because it would be inconsequential, as they are merely copies of instances stored elsewhere. However, you can use ``Delete from all folders'', in which case those other instances will be deleted also, and the references will then show up in the Trash. 
 
