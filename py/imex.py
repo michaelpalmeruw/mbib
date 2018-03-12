@@ -60,6 +60,8 @@ class Imex(object):
         '''
         shared backend for insertion of references retrieved from
         pubmed or parsed from bibtex
+
+        the progress bar stuff here is outdated
         '''
         errors = []
 
@@ -69,8 +71,7 @@ class Imex(object):
         for i, record in enumerate(records):
             more_errors = self.add_reference(record, node, single_mode=False)
             errors.extend(more_errors)
-            progress = base_level + rest_scale * (i+1) / len(records)
-            progress_bar.set_completion(progress)
+            progress_bar.update(i+1)
 
         progress_bar.set_title("Committing database changes")
 
@@ -156,7 +157,7 @@ class Imex(object):
 
         # OK doke, we have at least one valid record. Now what? Just construct
         # a new progress bar and invoke the common backend.
-        progress_bar = hub.progress_bar()
+        progress_bar = hub.progress_bar(target=len(records))
         progress_bar.show()
         self.ref_count_before = self.item_count('refs')
         self._import_records(node, records, progress_bar)
