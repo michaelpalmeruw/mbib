@@ -10,7 +10,7 @@ Features:
 
 - Push citations to Texmaker/TexStudio
 
-- Push citations to OpenOffice.org/LibreOffice. Formatting of bibliographies in piggybacks on JabRef. Thus, you need to have JabRef installed in order to fully use mbib with OOo/LO
+- Push citations to OpenOffice.org/LibreOffice. Advanced formatting of bibliographies piggybacks on JabRef. Thus, you need to have JabRef installed in order to fully use mbib with OOo/LO
 
 - Written in Python3
 
