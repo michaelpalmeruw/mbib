@@ -56,27 +56,22 @@ class Imex(object):
         hub._empty_folder(self.recently_added_id)
 
 
-    def _import_records(self, node, records, progress_bar, base_level=0):
+    def _import_records(self, node, records):
         '''
         shared backend for insertion of references retrieved from
         pubmed or parsed from bibtex
-
-        the progress bar stuff here is outdated
         '''
         errors = []
 
-        progress_bar.set_title("Adding references to database")
-        rest_scale = 90 - base_level
+        progress_bar = hub.progress_bar(target=len(records), title="Adding references to database")
+        progress_bar.show()
 
         for i, record in enumerate(records):
             more_errors = self.add_reference(record, node, single_mode=False)
             errors.extend(more_errors)
             progress_bar.update(i+1)
 
-        progress_bar.set_title("Committing database changes")
-
         self._db.commit()
-        progress_bar.set_completion(100)
 
         # hub.refresh_tree_item(node)
         # we need to refresh the tree in order to update the Imported pseudo-folder
@@ -113,25 +108,20 @@ class Imex(object):
         '''
         raw_ids = self._file_or_text(raw_info)
 
-        progress_bar = hub.progress_bar(len(raw_ids))
-        progress_bar.set_title("importing from Pubmed")
-        progress_bar.show()
-
         self.ref_count_before = self.item_count('refs')
 
         try:
-            importer = PubmedImporter(raw_ids, progress_bar)
+            importer = PubmedImporter(raw_ids)
             records, failed_pmids = importer()
         except PubmedError as e:
             hub.show_errors(e.message)
-            progress_bar.dismiss()
             return
 
         if len(failed_pmids):
             msg = 'nothing retrieved for the following identifiers: %s' % ', '.join(failed_pmids)
             hub.show_errors(msg)
 
-        self._import_records(node, records, progress_bar, base_level=20)
+        self._import_records(node, records)
 
 
     def import_bibtex(self, node, raw_info):
@@ -157,10 +147,8 @@ class Imex(object):
 
         # OK doke, we have at least one valid record. Now what? Just construct
         # a new progress bar and invoke the common backend.
-        progress_bar = hub.progress_bar(target=len(records))
-        progress_bar.show()
         self.ref_count_before = self.item_count('refs')
-        self._import_records(node, records, progress_bar)
+        self._import_records(node, records)
 
 
     def random_string(self, length=8):

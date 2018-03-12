@@ -7,6 +7,7 @@ OK doke, we are going to redo this using efetch and lxml:
 '''
 import re, pprint
 from io import BytesIO
+from hub import hub
 
 class PubmedError(Exception):
     pass
@@ -45,16 +46,13 @@ class PubmedImporter(object):
     bibtex_re = re.compile('|'.join(re.escape(str(key)) for key in sorted(list(bibtex_conv.keys()), \
                                                                              key = lambda item: -len(item))))
 
-    def __init__(self, raw_pmids, progress_bar):
+    def __init__(self, raw_pmids):
         self.pmid_list = [_f for _f in self.pmid_split.split(raw_pmids) if _f]
-        self.progress_bar = progress_bar
-        self.progress = 0
 
         if not self.pmid_list:
             raise PubmedError('no valid pmid identifiers (pmids are just numbers)')
 
         self.failed_pmids = set(self.pmid_list)     #   we strike off every pmid that we do retrieve
-
         self.records = []
 
 
@@ -63,6 +61,8 @@ class PubmedImporter(object):
         get the raw stuff from pubmed
         '''
         import requests         # a heavy import
+        progress_bar = hub.progress_bar(target=len(self.pmid_list), title="Fetching Pubmed records")
+        progress_bar.show()
 
         parameters = dict(db="pubmed", retmode="xml", id=','.join(self.pmid_list))
 
@@ -71,6 +71,8 @@ class PubmedImporter(object):
             webfile = BytesIO(r.content)
         except:
             raise PubmedError('Nothing retrieved for given identifiers')
+        finally:
+            progress_bar.dismiss()
 
         return webfile
 
@@ -159,8 +161,6 @@ class PubmedImporter(object):
         self.set_key(article, d, 'doi', "PubmedData/ArticleIdList/ArticleId[@IdType='doi']")
         self.set_key(article, d, 'pmid', "PubmedData/ArticleIdList/ArticleId[@IdType='pubmed']")
 
-        # d['url'] = self.record_base_url + d['pmid'] Nope. This is redundant.
-
         return d
 
 
@@ -170,21 +170,19 @@ class PubmedImporter(object):
         '''
         from lxml import etree      # a heavy import
 
-        self.progress_bar.set_title("Fetching %s records" % len(self.pmid_list))
-
         webfile = self.fetch()
-
-        self.progress_bar.set_title('Parsing records')
-        self.progress_bar.set_completion(20)
-
         root = etree.parse(webfile)
         articles = root.findall('PubmedArticle')
+
+        progress_bar = hub.progress_bar(target=len(articles), title="Parsing records")
+        progress_bar.show()
 
         for i, article in enumerate(articles):
             parsed = self.parse_article(article)
             self.records.append(parsed)
             self.failed_pmids.discard(parsed['pmid'])
 
+        progress_bar.dismiss()
         return self.records, sorted(list(self.failed_pmids))
 
 
