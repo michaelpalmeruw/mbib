@@ -836,6 +836,7 @@ class RefDb(object):
         try to show a pdf file. If not there, show error; if multiple files, show first one.
         if we get annoyed with this, we can always bolt on a menu later
         '''
+        viewer = config['preferences'].get('pdf_viewer', 'xdg-open')
         bibtexkey = self.bibtexkey_for_node(node)
         path = self.pdf_filepath(bibtexkey)
 
@@ -846,7 +847,7 @@ class RefDb(object):
         # prevent subprocess from messing up the screen ...
         hub.set_status_bar('Opening PDF ...')
         fnull = open(os.devnull, 'w')
-        subprocess.Popen(["xdg-open", path], stdout=fnull, stderr=fnull)
+        subprocess.Popen([viewer, path], stdout=fnull, stderr=fnull)
 
 
     def show_pdf_bibtexkey(self, bibtexkey):

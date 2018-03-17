@@ -520,7 +520,7 @@ class Selections(object):
         '''
         # hub.set_status_bar('locating PDF files for email')
         ref_ids = [s[0] for s in self.get_selected_refs()]
-        self._mail_references(refids)
+        self._mail_references(ref_ids)
 
 
     def mail_current(self, node=None):
