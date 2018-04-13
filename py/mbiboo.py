@@ -16,7 +16,7 @@ Is it a good idea to throw this into one pot with the
 LaTeX editors? Fewer shortcuts, but the process IS kind
 of involved. I will give it a miss then.
 '''
-import os, sys, uno, pprint
+import os, sys, uno# , pprint
 from hub import hub, RefdbError, IntegrityError
 from config import config
 
@@ -167,8 +167,11 @@ class LibreOffice(object):
             new_key = self.key_mapping.get(key, key.title())
             adapted[new_key] = str(value)
 
-        pprint.pprint(adapted)
-        self.insert_ref(adapted)
+        # pprint.pprint(adapted)
+        try:
+            self.insert_ref(adapted)
+        except ConnectionError:
+            hub.show_errors("No active Writer document found")
 
         if status:
             hub.set_status_bar('cited %s' % adapted['Identifier'])
